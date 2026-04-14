@@ -1,19 +1,16 @@
-// Story 1.2 将实现认证 API
-// 占位文件
-
 import apiClient from './client'
-import type { LoginRequest, TokenResponse, User } from '../types/auth'
+import type { LoginRequest, LoginResponse, User } from '../types/auth'
 
 export const authApi = {
-  login: (_data: LoginRequest): Promise<TokenResponse> => {
-    throw new Error('Story 1.2 将实现此方法')
-  },
+  login: (data: LoginRequest) =>
+    apiClient.post<LoginResponse>('/auth/login', data).then((r) => r.data),
 
-  logout: (): Promise<void> => {
-    throw new Error('Story 1.2 将实现此方法')
-  },
+  logout: () =>
+    apiClient.post<{ message: string }>('/auth/logout').then((r) => r.data),
 
-  getCurrentUser: (): Promise<User> => {
-    return apiClient.get<User>('/auth/me').then((r) => r.data)
-  },
+  refresh: () =>
+    apiClient.post<{ message: string }>('/auth/refresh').then((r) => r.data),
+
+  getMe: () =>
+    apiClient.get<User>('/auth/me').then((r) => r.data),
 }

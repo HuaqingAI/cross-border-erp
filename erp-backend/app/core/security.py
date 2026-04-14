@@ -1,20 +1,38 @@
-# Story 1.2 将实现 JWT 签发/验证和密码哈希
-# 本文件为占位，预留接口签名供后续 Story 填充
-
+from datetime import datetime, timedelta, timezone
 from typing import Any
+
+import bcrypt
+from jose import jwt
+
+from app.core.config import settings
 
 
 def create_access_token(data: dict[str, Any]) -> str:
-    raise NotImplementedError("Story 1.2 将实现此方法")
+    to_encode = data.copy()
+    expire = datetime.now(timezone.utc) + timedelta(
+        minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
+    )
+    to_encode.update({"exp": expire, "type": "access"})
+    return jwt.encode(to_encode, settings.SECRET_KEY, algorithm="HS256")
+
+
+def create_refresh_token(data: dict[str, Any]) -> str:
+    to_encode = data.copy()
+    expire = datetime.now(timezone.utc) + timedelta(
+        days=settings.REFRESH_TOKEN_EXPIRE_DAYS
+    )
+    to_encode.update({"exp": expire, "type": "refresh"})
+    return jwt.encode(to_encode, settings.SECRET_KEY, algorithm="HS256")
 
 
 def verify_token(token: str) -> dict[str, Any]:
-    raise NotImplementedError("Story 1.2 将实现此方法")
+    """解析 JWT，失败抛 JWTError（由调用方处理为 401）。"""
+    return jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
 
 
 def hash_password(password: str) -> str:
-    raise NotImplementedError("Story 1.2 将实现此方法")
+    return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    raise NotImplementedError("Story 1.2 将实现此方法")
+    return bcrypt.checkpw(plain_password.encode(), hashed_password.encode())
