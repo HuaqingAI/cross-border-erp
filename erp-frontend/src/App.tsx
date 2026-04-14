@@ -1,13 +1,27 @@
-// 路由根组件占位
-// Story 1.4 将实现完整的前端导航系统和路由配置
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import ProtectedRoute from './features/auth/components/ProtectedRoute'
+import LoginPage from './features/auth/pages/LoginPage'
 
-function App() {
+// Story 1.4 将替换此占位页为完整导航/布局
+function HomePage() {
   return (
-    <div style={{ padding: '24px' }}>
-      <h1>跨境ERP系统</h1>
-      <p>系统骨架已就绪，等待业务功能开发。</p>
+    <div style={{ padding: 24 }}>
+      <h2>系统主页</h2>
+      <p>认证系统已就绪，Story 1.4 将完成完整导航系统。</p>
     </div>
   )
 }
 
-export default App
+export default function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route element={<ProtectedRoute />}>
+          <Route path="/" element={<HomePage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
+  )
+}
