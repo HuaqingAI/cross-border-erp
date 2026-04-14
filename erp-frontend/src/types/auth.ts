@@ -1,11 +1,9 @@
-// Story 1.2 将定义完整的认证类型
-// 占位文件
+export type UserRole = 'admin' | 'product_dept' | 'business_dept' | 'finance_dept'
 
 export interface User {
   id: number
   username: string
-  email: string
-  role: string
+  role: UserRole
 }
 
 export interface LoginRequest {
@@ -13,7 +11,7 @@ export interface LoginRequest {
   password: string
 }
 
-export interface TokenResponse {
-  access_token: string
-  token_type: string
+export interface LoginResponse {
+  user: User
+  message: string
 }

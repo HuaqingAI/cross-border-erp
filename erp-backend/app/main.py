@@ -32,9 +32,10 @@ app.add_middleware(
 
 register_exception_handlers(app)
 
-# Router 注册（后续各 Story 添加）
-# from app.routers import auth
-# app.include_router(auth.router, prefix="/api/v1")
+# Router 注册
+from app.routers import auth as auth_router  # noqa: E402
+
+app.include_router(auth_router.router, prefix="/api/v1")
 
 
 @app.get("/health")
