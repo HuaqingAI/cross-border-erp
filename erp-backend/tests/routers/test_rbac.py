@@ -1,7 +1,7 @@
 """
 RBAC 集成测试：验证 require_role() 依赖对不同角色的访问控制。
 
-测试方案：在 app 上临时注册测试专用路由（模块级，仅对测试进程可见）。
+测试方案：在 app 上注册测试专用路由（通过 session fixture，测试结束后清理）。
 """
 
 import pytest
@@ -21,7 +21,7 @@ from app.models.user import User, UserRole
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-# 注册测试专用路由（模块导入时执行一次）
+# 测试专用路由定义
 # ──────────────────────────────────────────────────────────────────────────────
 from fastapi import APIRouter, Depends
 
@@ -43,7 +43,16 @@ async def _finance_write(current_user: User = Depends(require_finance_or_admin))
     return {"role": current_user.role, "allowed": True}
 
 
-app.include_router(_rbac_test_router)
+@pytest.fixture(autouse=True, scope="session")
+def _register_rbac_test_routes():
+    """测试会话开始时注册测试路由，结束后清理，避免污染其他测试文件。"""
+    app.include_router(_rbac_test_router)
+    yield
+    app.router.routes = [
+        r for r in app.router.routes
+        if not getattr(r, "path", "").startswith("/api/v1/rbac-test")
+    ]
+    app.openapi_schema = None  # 清除缓存的 OpenAPI schema
 
 
 # ──────────────────────────────────────────────────────────────────────────────
