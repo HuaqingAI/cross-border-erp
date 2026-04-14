@@ -57,6 +57,8 @@ require_business_or_admin = require_role(UserRole.BUSINESS_DEPT, UserRole.ADMIN)
 require_finance_or_admin = require_role(UserRole.FINANCE_DEPT, UserRole.ADMIN)
 
 # 数据导入操作：产品部 + 管理员（FR28-FR31）
+# 注：当前与 require_product_or_admin 权限一致，独立命名以便未来单独调整
+# （例如若导入功能需对商务部开放，只需修改此处，不影响其他产品操作）
 require_import_permission = require_role(UserRole.PRODUCT_DEPT, UserRole.ADMIN)
 
 # 管理员专属（枚举值配置等）
