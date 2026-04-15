@@ -13,8 +13,8 @@ import { useUIStore } from '../../stores/uiStore'
 
 const { Sider } = Layout
 
-// 菜单 key 与页签标题的映射
-const TAB_LABELS: Record<string, string> = {
+// 菜单 key 与页签标题的映射（导出供 AppLayout 刷新同步使用）
+export const TAB_LABELS: Record<string, string> = {
   '/products/categories': '分类管理',
   '/products/spus': 'SPU管理',
   '/products/skus': 'SKU管理',
@@ -35,6 +35,8 @@ export default function SideMenu() {
   const permission = usePermission()
 
   const handleMenuClick = ({ key }: { key: string }) => {
+    // 父级菜单组（key 无斜杠前缀）只展开/收起子菜单，不做路由跳转
+    if (!key.startsWith('/')) return
     const label = TAB_LABELS[key] ?? key
     openTab({ key, label, closable: true })
     navigate(key)

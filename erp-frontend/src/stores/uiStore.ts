@@ -37,8 +37,8 @@ export const useUIStore = create<UIStore>((set) => ({
       if (index === -1) return state
       const newTabs = state.tabs.filter((t) => t.key !== key)
       let newActiveKey = state.activeTabKey
-      if (state.activeTabKey === key && newTabs.length > 0) {
-        newActiveKey = newTabs[Math.max(0, index - 1)].key
+      if (state.activeTabKey === key) {
+        newActiveKey = newTabs.length > 0 ? newTabs[Math.max(0, index - 1)].key : ''
       }
       return { tabs: newTabs, activeTabKey: newActiveKey }
     }),

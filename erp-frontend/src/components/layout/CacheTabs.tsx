@@ -4,6 +4,8 @@ import { useAliveController } from 'react-activation'
 import { useNavigate } from 'react-router-dom'
 import { useUIStore } from '../../stores/uiStore'
 
+const DEFAULT_ROUTE = '/products/skus'
+
 export default function CacheTabs() {
   const navigate = useNavigate()
   const { drop } = useAliveController()
@@ -34,8 +36,9 @@ export default function CacheTabs() {
         key: 'closeOthers',
         label: '关闭其他',
         onClick: () => {
-          // 清除其他 tab 的 KeepAlive 缓存
-          tabs.forEach((t) => {
+          // 读取最新 tabs 状态（避免陈旧闭包）
+          const currentTabs = useUIStore.getState().tabs
+          currentTabs.forEach((t) => {
             if (t.key !== tabKey && t.closable) drop(t.key)
           })
           closeOtherTabs(tabKey)
@@ -46,12 +49,14 @@ export default function CacheTabs() {
         key: 'closeAll',
         label: '关闭所有',
         onClick: () => {
-          tabs.forEach((t) => {
+          // 读取最新 tabs 状态（避免陈旧闭包）
+          const currentTabs = useUIStore.getState().tabs
+          currentTabs.forEach((t) => {
             if (t.closable) drop(t.key)
           })
           closeAllTabs()
-          const homeTab = useUIStore.getState().tabs[0]
-          if (homeTab) navigate(homeTab.key)
+          const remainingTabs = useUIStore.getState().tabs
+          navigate(remainingTabs[0]?.key ?? DEFAULT_ROUTE)
         },
       },
     ],
