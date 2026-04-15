@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: [main, 'story/**']
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend-test:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: test
+          MYSQL_DATABASE: erp_test
+        ports:
+          - '3306:3306'
+        options: >-
+          --health-cmd "mysqladmin ping -h localhost -u root -ptest"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: erp-backend/requirements-dev.txt
+      - name: Install dependencies
+        run: cd erp-backend && pip install -r requirements-dev.txt
+      - name: Run tests
+        run: cd erp-backend && pytest tests/ -v --cov=app --cov-report=term-missing
+        env:
+          DATABASE_URL: mysql+aiomysql://root:test@localhost:3306/erp_test
+
+  frontend-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: erp-frontend/package-lock.json
+      - name: Install dependencies
+        run: cd erp-frontend && npm ci
+      - name: Run tests
+        run: cd erp-frontend && npm run test
+      - name: Build
+        run: cd erp-frontend && npm run build
+
+  docker-build:
+    needs: [backend-test, frontend-test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Docker images
+        run: docker compose build

@@ -30,3 +30,18 @@ npm-debug.log*
 
 # Test coverage
 coverage/
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.venv/
+venv/
+*.egg-info/
+
+# Frontend build output
+erp-frontend/dist/
