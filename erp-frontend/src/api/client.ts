@@ -6,10 +6,10 @@ const apiClient = axios.create({
   headers: { 'Content-Type': 'application/json' },
 })
 
-// 响应拦截器：401 跳转到登录页（排除 login/refresh 自身）
+// 响应拦截器：401 先清除前端状态再跳转到登录页（排除 login/refresh 自身）
 apiClient.interceptors.response.use(
   (response) => response,
-  async (error) => {
+  (error) => {
     const status = error.response?.status
     const url: string = error.config?.url ?? ''
 
@@ -18,6 +18,7 @@ apiClient.interceptors.response.use(
       !url.includes('/auth/login') &&
       !url.includes('/auth/refresh')
     ) {
+      useAuthStore.getState().logout()
       window.location.href = '/login'
     }
     return Promise.reject(error)
