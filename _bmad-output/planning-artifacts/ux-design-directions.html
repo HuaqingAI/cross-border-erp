@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cross-Border ERP - UX Design Directions</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; background: #f0f0f0; color: rgba(0,0,0,0.88); }
+
+/* Nav */
+.nav { position: fixed; top: 0; left: 0; right: 0; background: #fff; border-bottom: 1px solid #e8e8e8; z-index: 100; display: flex; align-items: center; padding: 0 24px; height: 48px; }
+.nav h1 { font-size: 16px; font-weight: 600; color: #C41D2E; margin-right: 32px; }
+.nav-tabs { display: flex; gap: 4px; }
+.nav-tab { padding: 8px 20px; cursor: pointer; border-radius: 4px 4px 0 0; font-size: 14px; color: rgba(0,0,0,0.65); border: 1px solid transparent; border-bottom: none; transition: all .2s; }
+.nav-tab:hover { color: #C41D2E; background: #fff5f5; }
+.nav-tab.active { color: #C41D2E; background: #fff; border-color: #e8e8e8; font-weight: 600; position: relative; }
+.nav-tab.active::after { content: ''; position: absolute; bottom: -1px; left: 0; right: 0; height: 2px; background: #fff; }
+
+/* Content */
+.content { margin-top: 48px; padding: 24px; }
+.direction { display: none; }
+.direction.active { display: block; }
+
+/* Direction cards */
+.direction-title { font-size: 20px; font-weight: 600; margin-bottom: 8px; }
+.direction-desc { font-size: 14px; color: rgba(0,0,0,0.65); margin-bottom: 24px; line-height: 22px; }
+
+/* Mockup frame */
+.mockup { background: #f5f5f5; border-radius: 8px; overflow: hidden; border: 1px solid #d9d9d9; margin-bottom: 32px; }
+.mockup-label { background: #fafafa; padding: 8px 16px; font-size: 12px; color: rgba(0,0,0,0.45); border-bottom: 1px solid #f0f0f0; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+
+/* Shared ERP layout */
+.erp-layout { display: flex; min-height: 520px; background: #f5f5f5; }
+.erp-sidebar { width: 200px; background: #001529; color: #fff; flex-shrink: 0; }
+.erp-sidebar-header { padding: 16px; font-size: 14px; font-weight: 600; border-bottom: 1px solid rgba(255,255,255,0.1); }
+.erp-menu-group { padding: 8px 0; }
+.erp-menu-title { padding: 8px 16px; font-size: 12px; color: rgba(255,255,255,0.45); }
+.erp-menu-item { padding: 8px 16px 8px 32px; font-size: 14px; color: rgba(255,255,255,0.65); cursor: pointer; transition: all .2s; }
+.erp-menu-item:hover { color: #fff; background: rgba(255,255,255,0.08); }
+.erp-menu-item.active { color: #fff; background: #C41D2E; }
+.erp-main { flex: 1; display: flex; flex-direction: column; }
+.erp-tabs { display: flex; background: #fff; border-bottom: 1px solid #f0f0f0; padding: 0 16px; }
+.erp-tab { padding: 8px 16px; font-size: 13px; color: rgba(0,0,0,0.65); cursor: pointer; border-bottom: 2px solid transparent; display: flex; align-items: center; gap: 6px; }
+.erp-tab.active { color: #C41D2E; border-bottom-color: #C41D2E; }
+.erp-tab .close { font-size: 10px; opacity: 0.4; }
+.erp-tab:hover .close { opacity: 1; }
+.erp-body { flex: 1; padding: 12px 16px; overflow: auto; }
+
+/* Tags */
+.tag { display: inline-block; padding: 1px 8px; border-radius: 4px; font-size: 12px; line-height: 20px; }
+.tag-green { background: #f6ffed; color: #52c41a; border: 1px solid #b7eb8f; }
+.tag-orange { background: #fffbe6; color: #faad14; border: 1px solid #ffe58f; }
+.tag-red { background: #fff2f0; color: #ff4d4f; border: 1px solid #ffccc7; }
+.tag-blue { background: #e6f4ff; color: #1677ff; border: 1px solid #91caff; }
+.tag-default { background: #fafafa; color: rgba(0,0,0,0.65); border: 1px solid #d9d9d9; }
+
+/* Buttons */
+.btn { display: inline-block; padding: 4px 16px; border-radius: 4px; font-size: 14px; cursor: pointer; border: 1px solid; line-height: 22px; }
+.btn-primary { background: #C41D2E; color: #fff; border-color: #C41D2E; }
+.btn-default { background: #fff; color: rgba(0,0,0,0.88); border-color: #d9d9d9; }
+.btn-link { background: none; border: none; color: #C41D2E; padding: 0; cursor: pointer; font-size: 14px; }
+.btn-sm { padding: 2px 8px; font-size: 12px; }
+
+/* Filter bar */
+.filter-bar { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; background: #fff; padding: 12px 16px; border-radius: 4px; border: 1px solid #f0f0f0; }
+.filter-item { display: flex; align-items: center; gap: 4px; font-size: 13px; }
+.filter-item label { color: rgba(0,0,0,0.65); white-space: nowrap; }
+.filter-select { padding: 4px 8px; border: 1px solid #d9d9d9; border-radius: 4px; font-size: 13px; background: #fff; min-width: 120px; height: 28px; }
+.filter-input { padding: 4px 8px; border: 1px solid #d9d9d9; border-radius: 4px; font-size: 13px; background: #fff; min-width: 180px; height: 28px; }
+
+/* Action bar */
+.action-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.action-bar-right { font-size: 13px; color: rgba(0,0,0,0.45); }
+
+/* Table */
+.table { width: 100%; border-collapse: collapse; background: #fff; font-size: 14px; }
+.table th { background: #fafafa; padding: 10px 12px; text-align: left; font-weight: 600; color: rgba(0,0,0,0.88); border-bottom: 1px solid #f0f0f0; font-size: 13px; }
+.table td { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; color: rgba(0,0,0,0.65); font-size: 13px; }
+.table tr:hover td { background: #fafafa; }
+
+/* Pagination */
+.pagination { display: flex; justify-content: flex-end; align-items: center; padding: 12px 0; gap: 4px; font-size: 13px; color: rgba(0,0,0,0.65); }
+.pagination-total { margin-right: auto; color: rgba(0,0,0,0.45); }
+.page-btn { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border: 1px solid #d9d9d9; border-radius: 4px; cursor: pointer; font-size: 13px; background: #fff; }
+.page-btn.active { border-color: #C41D2E; color: #C41D2E; }
+
+/* Detail page */
+.detail-header { background: #fff; padding: 16px; border-radius: 4px; margin-bottom: 12px; }
+.detail-title { font-size: 18px; font-weight: 600; margin-bottom: 8px; display: flex; align-items: center; gap: 12px; }
+.detail-meta { display: flex; gap: 24px; font-size: 13px; color: rgba(0,0,0,0.65); }
+.detail-meta-item { display: flex; gap: 4px; }
+.detail-meta-label { color: rgba(0,0,0,0.45); }
+.detail-tabs { display: flex; gap: 0; background: #fff; border-bottom: 1px solid #f0f0f0; padding: 0 16px; border-radius: 4px 4px 0 0; }
+.detail-tab { padding: 10px 20px; font-size: 14px; color: rgba(0,0,0,0.65); cursor: pointer; border-bottom: 2px solid transparent; }
+.detail-tab.active { color: #C41D2E; border-bottom-color: #C41D2E; font-weight: 600; }
+.detail-content { background: #fff; padding: 16px; border-radius: 0 0 4px 4px; min-height: 200px; }
+
+/* Form */
+.form-section { margin-bottom: 24px; }
+.form-section-title { font-size: 16px; font-weight: 600; padding-bottom: 8px; margin-bottom: 12px; border-bottom: 1px solid #f0f0f0; display: flex; align-items: center; gap: 8px; }
+.form-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 12px; }
+.form-item { }
+.form-label { font-size: 13px; color: rgba(0,0,0,0.88); margin-bottom: 4px; }
+.form-label .required { color: #ff4d4f; margin-right: 2px; }
+.form-control { width: 100%; padding: 4px 8px; border: 1px solid #d9d9d9; border-radius: 4px; font-size: 13px; height: 32px; background: #fff; }
+.form-control.inherited { background: #fafafa; color: rgba(0,0,0,0.45); }
+.inherited-tag { font-size: 11px; color: rgba(0,0,0,0.35); background: #f5f5f5; padding: 0 4px; border-radius: 2px; margin-left: 4px; }
+.form-footer { position: sticky; bottom: 0; background: #fff; padding: 12px 16px; border-top: 1px solid #f0f0f0; display: flex; gap: 8px; justify-content: center; }
+
+/* Direction A specific */
+.dir-a .form-section-title { color: #C41D2E; }
+.dir-a .form-section-title::before { content: ''; display: inline-block; width: 3px; height: 16px; background: #C41D2E; border-radius: 2px; }
+
+/* Direction B specific */
+.dir-b .form-section { background: #fff; padding: 16px; border-radius: 4px; border: 1px solid #f0f0f0; }
+.dir-b .form-section-title { border-bottom: none; padding-bottom: 0; margin-bottom: 16px; font-size: 15px; }
+
+/* Direction C specific */
+.dir-c .detail-header { background: linear-gradient(135deg, #fafafa 0%, #fff 100%); border-left: 3px solid #C41D2E; }
+
+/* Info grid for detail */
+.info-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.info-item { }
+.info-label { font-size: 12px; color: rgba(0,0,0,0.45); margin-bottom: 2px; }
+.info-value { font-size: 14px; color: rgba(0,0,0,0.88); }
+
+/* Comparison section */
+.comparison { background: #fff; border-radius: 8px; padding: 24px; margin-bottom: 32px; }
+.comparison h3 { font-size: 16px; font-weight: 600; margin-bottom: 16px; }
+.comparison-table { width: 100%; border-collapse: collapse; }
+.comparison-table th { background: #fafafa; padding: 10px 16px; text-align: left; font-weight: 600; border-bottom: 2px solid #f0f0f0; }
+.comparison-table td { padding: 10px 16px; border-bottom: 1px solid #f0f0f0; }
+.comparison-table td:first-child { font-weight: 600; color: rgba(0,0,0,0.88); }
+.check { color: #52c41a; }
+</style>
+</head>
+<body>
+
+<div class="nav">
+  <h1>Cross-Border ERP - Design Directions</h1>
+  <div class="nav-tabs">
+    <div class="nav-tab active" onclick="showDir('a')">Direction A: Classic ERP</div>
+    <div class="nav-tab" onclick="showDir('b')">Direction B: Card-Based</div>
+    <div class="nav-tab" onclick="showDir('c')">Direction C: Accent Line</div>
+    <div class="nav-tab" onclick="showDir('compare')">Comparison</div>
+  </div>
+</div>
+
+<div class="content">
+
+<!-- Direction A -->
+<div id="dir-a" class="direction active">
+  <div class="direction-title">Direction A: Classic ERP - Red Accent Bar</div>
+  <div class="direction-desc">表单分区使用左侧红色竖线 + 红色标题标识，列表页经典三段式，详情页顶部摘要卡片 + Tab 分区。最接近领星 ERP 风格，信息密度高，适合日常高频操作。</div>
+
+  <!-- List Page -->
+  <div class="mockup">
+    <div class="mockup-label">SKU List Page - SKU 列表页</div>
+    <div class="erp-layout">
+      <div class="erp-sidebar">
+        <div class="erp-sidebar-header">跨境医疗器械 ERP</div>
+        <div class="erp-menu-group">
+          <div class="erp-menu-title">产品管理</div>
+          <div class="erp-menu-item">分类管理</div>
+          <div class="erp-menu-item">SPU 管理</div>
+          <div class="erp-menu-item active">SKU 管理</div>
+          <div class="erp-menu-item">产品证书</div>
+          <div class="erp-menu-item">产品资料</div>
+          <div class="erp-menu-item">FAQ 管理</div>
+          <div class="erp-menu-item">销售价格</div>
+        </div>
+      </div>
+      <div class="erp-main">
+        <div class="erp-tabs">
+          <div class="erp-tab active">SKU 管理 <span class="close">x</span></div>
+          <div class="erp-tab">产品证书 <span class="close">x</span></div>
+          <div class="erp-tab">SPU 详情 - SZ001 <span class="close">x</span></div>
+        </div>
+        <div class="erp-body">
+          <div class="filter-bar">
+            <div class="filter-item"><label>分类：</label><select class="filter-select"><option>全部分类</option></select></div>
+            <div class="filter-item"><label>供应商：</label><select class="filter-select"><option>全部供应商</option></select></div>
+            <div class="filter-item"><label>产品状态：</label><select class="filter-select"><option>全部状态</option></select></div>
+            <div class="filter-item"><label>产品类型：</label><select class="filter-select"><option>全部类型</option></select></div>
+            <div class="filter-item"><input class="filter-input" placeholder="搜索 SKU 编码 / 名称"></div>
+          </div>
+          <div class="action-bar">
+            <div><button class="btn btn-primary">+ 新增 SKU</button> <button class="btn btn-default" style="margin-left:8px">导入</button></div>
+          </div>
+          <table class="table">
+            <thead><tr><th>SKU 编码</th><th>中文名称</th><th>产品型号</th><th>SPU</th><th>供应商</th><th>状态</th><th>创建时间</th><th>操作</th></tr></thead>
+            <tbody>
+              <tr><td>SKU-20231001</td><td>便携式超声诊断仪 A1</td><td>US-A1-220V</td><td>SZ001</td><td>深圳迈瑞</td><td><span class="tag tag-green">上架</span></td><td>2026-03-15</td><td><button class="btn-link">查看</button> <button class="btn-link" style="margin-left:8px">编辑</button></td></tr>
+              <tr><td>SKU-20231002</td><td>便携式超声诊断仪 A2</td><td>US-A2-110V</td><td>SZ001</td><td>深圳迈瑞</td><td><span class="tag tag-green">上架</span></td><td>2026-03-15</td><td><button class="btn-link">查看</button> <button class="btn-link" style="margin-left:8px">编辑</button></td></tr>
+              <tr><td>SKU-20231015</td><td>心电监护仪 Pro</td><td>ECG-P-220V</td><td>SZ008</td><td>广州博声</td><td><span class="tag tag-orange">下架可售</span></td><td>2026-02-20</td><td><button class="btn-link">查看</button> <button class="btn-link" style="margin-left:8px">编辑</button></td></tr>
+              <tr><td>SKU-20231033</td><td>血氧检测仪 Mini</td><td>OX-M-BAT</td><td>SZ012</td><td>杭州鱼跃</td><td><span class="tag tag-green">上架</span></td><td>2026-01-10</td><td><button class="btn-link">查看</button> <button class="btn-link" style="margin-left:8px">编辑</button></td></tr>
+              <tr><td>SKU-20231045</td><td>红外额温枪 T3</td><td>IR-T3-STD</td><td>SZ015</td><td>佛山卓创</td><td><span class="tag tag-red">下架不可售</span></td><td>2025-12-08</td><td><button class="btn-link">查看</button> <button class="btn-link" style="margin-left:8px">编辑</button></td></tr>
+            </tbody>
+          </table>
+          <div class="pagination">
+            <span class="pagination-total">共 8,234 条</span>
+            <span>每页 20 条</span>
+            <span class="page-btn">&lt;</span>
+            <span class="page-btn active">1</span>
+            <span class="page-btn">2</span>
+            <span class="page-btn">3</span>
+            <span style="margin: 0 4px">...</span>
+            <span class="page-btn">412</span>
+            <span class="page-btn">&gt;</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Form Page -->
+  <div class="mockup dir-a">
+    <div class="mockup-label">SKU Form Page - SKU 新增/编辑页（Direction A: 红色竖线分区）</div>
+    <div style="background:#fff;padding:16px;">
+      <div style="font-size:18px;font-weight:600;margin-bottom:16px;">新增 SKU</div>
+      <div class="form-section">
+        <div class="form-section-title">基础信息</div>
+        <div class="form-row">
+          <div class="form-item"><div class="form-label"><span class="required">*</span>所属 SPU</div><select class="form-control"><option>请搜索选择 SPU...</option></select></div>
+          <div class="form-item"><div class="form-label"><span class="required">*</span>SKU 编码</div><input class="form-control" placeholder="请输入 SKU 编码"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-item"><div class="form-label">一级分类 <span class="inherited-tag">继承自 SPU</span></div><input class="form-control inherited" value="诊断设备" disabled></div>
+          <div class="form-item"><div class="form-label">二级分类 <span class="inherited-tag">继承自 SPU</span></div><input class="form-control inherited" value="超声诊断" disabled></div>
+          <div class="form-item"><div class="form-label">三级分类 <span class="inherited-tag">继承自 SPU</span></div><input class="form-control inherited" value="便携式超声" disabled></div>
+        </div>
+        <div class="form-row">
+          <div class="form-item"><div class="form-label">供应商 <span class="inherited-tag">继承自 SPU</span></div><input class="form-control inherited" value="深圳迈瑞" disabled></div>
+          <div class="form-item"><div class="form-label"><span class="required">*</span>SKU 中文名称</div><input class="form-control" placeholder="请输入中文名称"></div>
+          <div class="form-item"><div class="form-label"><span class="required">*</span>SKU 英文名称</div><input class="form-control" placeholder="请输入英文名称"></div>
+        </div>
+      </div>
+      <div class="form-section">
+        <div class="form-section-title">产品属性</div>
+        <div class="form-row">
+          <div class="form-item"><div class="form-label"><span class="required">*</span>产品类型</div><select class="form-control"><option>请选择</option></select></div>
+          <div class="form-item"><div class="form-label"><span class="required">*</span>核心参数</div><input class="form-control" placeholder="请输入"></div>
+          <div class="form-item"><div class="form-label"><span class="required">*</span>产品状态</div><select class="form-control"><option>上架</option></select></div>
+        </div>
+        <div class="form-row">
+          <div class="form-item"><div class="form-label"><span class="required">*</span>原理</div><input class="form-control" placeholder="请输入"></div>
+          <div class="form-item"><div class="form-label"><span class="required">*</span>用途</div><input class="form-control" placeholder="请输入"></div>
+          <div class="form-item"><div class="form-label"><span class="required">*</span>单位</div><select class="form-control"><option>请选择</option></select></div>
+        </div>
+      </div>
+      <div class="form-section">
+        <div class="form-section-title">报关信息</div>
+        <div style="background:#fffbe6;padding:8px 12px;border-radius:4px;font-size:12px;color:#faad14;margin-bottom:12px;">报关信息由商务部维护，当前角色仅可查看</div>
+        <div class="form-row">
+          <div class="form-item"><div class="form-label">报关 HSCODE</div><input class="form-control inherited" value="9018.12" disabled></div>
+          <div class="form-item"><div class="form-label">退税税点</div><input class="form-control inherited" value="13%" disabled></div>
+        </div>
+      </div>
+      <div class="form-footer">
+        <button class="btn btn-default">取消</button>
+        <button class="btn btn-primary">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Detail Page -->
+  <div class="mockup" style="margin-top:32px">
+    <div class="mockup-label">SKU Detail Page - SKU 详情页</div>
+    <div style="background:#f5f5f5;padding:12px 16px;">
+      <div class="detail-header">
+        <div class="detail-title">SKU-20231001 便携式超声诊断仪 A1 <span class="tag tag-green">上架</span></div>
+        <div class="detail-meta">
+          <div class="detail-meta-item"><span class="detail-meta-label">SPU:</span> SZ001</div>
+          <div class="detail-meta-item"><span class="detail-meta-label">供应商:</span> 深圳迈瑞</div>
+          <div class="detail-meta-item"><span class="detail-meta-label">型号:</span> US-A1-220V</div>
+          <div class="detail-meta-item"><span class="detail-meta-label">分类:</span> 诊断设备 > 超声诊断 > 便携式超声</div>
+        </div>
+      </div>
+      <div class="detail-tabs">
+        <div class="detail-tab active">基础信息</div>
+        <div class="detail-tab">产品证书 <span class="tag tag-default" style="margin-left:4px;font-size:11px;">3</span></div>
+        <div class="detail-tab">产品资料 <span class="tag tag-default" style="margin-left:4px;font-size:11px;">5</span></div>
+        <div class="detail-tab">FAQ <span class="tag tag-default" style="margin-left:4px;font-size:11px;">8</span></div>
+        <div class="detail-tab">销售价格 <span class="tag tag-default" style="margin-left:4px;font-size:11px;">4</span></div>
+      </div>
+      <div class="detail-content">
+        <div class="info-grid">
+          <div class="info-item"><div class="info-label">SKU 编码</div><div class="info-value">SKU-20231001</div></div>
+          <div class="info-item"><div class="info-label">中文名称</div><div class="info-value">便携式超声诊断仪 A1</div></div>
+          <div class="info-item"><div class="info-label">英文名称</div><div class="info-value">Portable Ultrasound A1</div></div>
+          <div class="info-item"><div class="info-label">产品型号</div><div class="info-value">US-A1-220V</div></div>
+          <div class="info-item"><div class="info-label">产品类型</div><div class="info-value">主品</div></div>
+          <div class="info-item"><div class="info-label">核心参数</div><div class="info-value">64 通道，15.6" 高清屏</div></div>
+          <div class="info-item"><div class="info-label">电参数</div><div class="info-value">220V</div></div>
+          <div class="info-item"><div class="info-label">单位</div><div class="info-value">台</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Direction B -->
+<div id="dir-b" class="direction">
+  <div class="direction-title">Direction B: Card-Based Sections</div>
+  <div class="direction-desc">表单分区使用独立白色卡片包裹，每个分区是一个视觉独立的区块。分区之间通过卡片间距自然分隔，不需要分割线。适合分区数量较多时保持视觉清晰。</div>
+
+  <div class="mockup dir-b">
+    <div class="mockup-label">SKU Form Page - SKU 新增/编辑页（Direction B: 卡片分区）</div>
+    <div style="background:#f5f5f5;padding:16px;">
+      <div style="font-size:18px;font-weight:600;margin-bottom:16px;padding-left:16px;">新增 SKU</div>
+      <div class="form-section">
+        <div class="form-section-title">基础信息</div>
+        <div class="form-row">
+          <div class="form-item"><div class="form-label"><span class="required">*</span>所属 SPU</div><select class="form-control"><option>请搜索选择 SPU...</option></select></div>
+          <div class="form-item"><div class="form-label"><span class="required">*</span>SKU 编码</div><input class="form-control" placeholder="请输入 SKU 编码"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-item"><div class="form-label">一级分类 <span class="inherited-tag">继承自 SPU</span></div><input class="form-control inherited" value="诊断设备" disabled></div>
+          <div class="form-item"><div class="form-label">二级分类 <span class="inherited-tag">继承自 SPU</span></div><input class="form-control inherited" value="超声诊断" disabled></div>
+          <div class="form-item"><div class="form-label">三级分类 <span class="inherited-tag">继承自 SPU</span></div><input class="form-control inherited" value="便携式超声" disabled></div>
+        </div>
+        <div class="form-row">
+          <div class="form-item"><div class="form-label">供应商 <span class="inherited-tag">继承自 SPU</span></div><input class="form-control inherited" value="深圳迈瑞" disabled></div>
+          <div class="form-item"><div class="form-label"><span class="required">*</span>SKU 中文名称</div><input class="form-control" placeholder="请输入中文名称"></div>
+          <div class="form-item"><div class="form-label"><span class="required">*</span>SKU 英文名称</div><input class="form-control" placeholder="请输入英文名称"></div>
+        </div>
+      </div>
+      <div class="form-section">
+        <div class="form-section-title">产品属性</div>
+        <div class="form-row">
+          <div class="form-item"><div class="form-label"><span class="required">*</span>产品类型</div><select class="form-control"><option>请选择</option></select></div>
+          <div class="form-item"><div class="form-label"><span class="required">*</span>核心参数</div><input class="form-control" placeholder="请输入"></div>
+          <div class="form-item"><div class="form-label"><span class="required">*</span>产品状态</div><select class="form-control"><option>上架</option></select></div>
+        </div>
+      </div>
+      <div class="form-section">
+        <div class="form-section-title">报关信息</div>
+        <div style="background:#fffbe6;padding:8px 12px;border-radius:4px;font-size:12px;color:#faad14;margin-bottom:12px;">报关信息由商务部维护，当前角色仅可查看</div>
+        <div class="form-row">
+          <div class="form-item"><div class="form-label">报关 HSCODE</div><input class="form-control inherited" value="9018.12" disabled></div>
+          <div class="form-item"><div class="form-label">退税税点</div><input class="form-control inherited" value="13%" disabled></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mockup" style="margin-top:32px">
+    <div class="mockup-label">SKU Detail Page - SKU 详情页（Direction B: 卡片分区详情）</div>
+    <div style="background:#f5f5f5;padding:12px 16px;">
+      <div class="detail-header" style="border-radius:4px;">
+        <div class="detail-title">SKU-20231001 便携式超声诊断仪 A1 <span class="tag tag-green">上架</span></div>
+        <div class="detail-meta">
+          <div class="detail-meta-item"><span class="detail-meta-label">SPU:</span> SZ001</div>
+          <div class="detail-meta-item"><span class="detail-meta-label">供应商:</span> 深圳迈瑞</div>
+          <div class="detail-meta-item"><span class="detail-meta-label">型号:</span> US-A1-220V</div>
+        </div>
+      </div>
+      <div class="detail-tabs" style="border-radius:4px 4px 0 0;">
+        <div class="detail-tab">基础信息</div>
+        <div class="detail-tab active">产品证书 <span class="tag tag-default" style="margin-left:4px;font-size:11px;">3</span></div>
+        <div class="detail-tab">产品资料</div>
+        <div class="detail-tab">FAQ</div>
+        <div class="detail-tab">销售价格</div>
+      </div>
+      <div class="detail-content">
+        <table class="table">
+          <thead><tr><th>证书名称</th><th>证书编号</th><th>证书类型</th><th>有效期</th><th>状态</th></tr></thead>
+          <tbody>
+            <tr><td>CE Medical Device</td><td>CE-2024-0815</td><td><span class="tag tag-default">CE</span></td><td>2024-08-15 ~ 2027-08-14</td><td><span class="tag tag-green">有效</span></td></tr>
+            <tr><td>FDA 510(k) Clearance</td><td>K240156</td><td><span class="tag tag-default">FDA</span></td><td>2024-03-01 ~ 2027-02-28</td><td><span class="tag tag-orange">即将过期</span></td></tr>
+            <tr><td>ISO 13485 Quality System</td><td>ISO-QMS-2023</td><td><span class="tag tag-default">ISO13485</span></td><td>2023-06-01 ~ 2026-05-31</td><td><span class="tag tag-green">有效</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Direction C -->
+<div id="dir-c" class="direction">
+  <div class="direction-title">Direction C: Accent Line Detail</div>
+  <div class="direction-desc">详情页摘要区使用左侧红色强调线，表单分区使用底部分割线（经典模式），整体最紧凑。列表页与 A 相同，差异集中在详情页和表单的细节处理上。</div>
+
+  <div class="mockup dir-c">
+    <div class="mockup-label">SKU Detail Page - SKU 详情页（Direction C: 左侧强调线）</div>
+    <div style="background:#f5f5f5;padding:12px 16px;">
+      <div class="detail-header">
+        <div class="detail-title">SKU-20231001 便携式超声诊断仪 A1 <span class="tag tag-green">上架</span> <span style="margin-left:auto;"><button class="btn btn-default btn-sm">编辑</button></span></div>
+        <div class="detail-meta" style="margin-top:8px;">
+          <div class="detail-meta-item"><span class="detail-meta-label">SPU:</span> SZ001</div>
+          <div class="detail-meta-item"><span class="detail-meta-label">供应商:</span> 深圳迈瑞</div>
+          <div class="detail-meta-item"><span class="detail-meta-label">型号:</span> US-A1-220V</div>
+          <div class="detail-meta-item"><span class="detail-meta-label">分类:</span> 诊断设备 > 超声诊断 > 便携式超声</div>
+          <div class="detail-meta-item"><span class="detail-meta-label">质保期:</span> 24 个月</div>
+        </div>
+      </div>
+      <div class="detail-tabs">
+        <div class="detail-tab active">基础信息</div>
+        <div class="detail-tab">产品证书 (3)</div>
+        <div class="detail-tab">产品资料 (5)</div>
+        <div class="detail-tab">FAQ (8)</div>
+        <div class="detail-tab">销售价格 (4)</div>
+      </div>
+      <div class="detail-content">
+        <div class="info-grid" style="grid-template-columns: repeat(3, 1fr);">
+          <div class="info-item"><div class="info-label">SKU 编码</div><div class="info-value">SKU-20231001</div></div>
+          <div class="info-item"><div class="info-label">中文名称</div><div class="info-value">便携式超声诊断仪 A1</div></div>
+          <div class="info-item"><div class="info-label">英文名称</div><div class="info-value">Portable Ultrasound A1</div></div>
+          <div class="info-item"><div class="info-label">产品型号</div><div class="info-value">US-A1-220V</div></div>
+          <div class="info-item"><div class="info-label">产品类型</div><div class="info-value">主品</div></div>
+          <div class="info-item"><div class="info-label">核心参数</div><div class="info-value">64 通道，15.6" 高清屏</div></div>
+          <div class="info-item"><div class="info-label">电参数</div><div class="info-value">220V</div></div>
+          <div class="info-item"><div class="info-label">原理</div><div class="info-value">超声波反射成像</div></div>
+          <div class="info-item"><div class="info-label">用途</div><div class="info-value">腹部、心脏、妇产科超声检查</div></div>
+          <div class="info-item"><div class="info-label">单位</div><div class="info-value">台</div></div>
+          <div class="info-item"><div class="info-label">有无插头</div><div class="info-value">有</div></div>
+          <div class="info-item"><div class="info-label">产品材质</div><div class="info-value">ABS + 不锈钢</div></div>
+        </div>
+        <div style="margin-top:16px;padding-top:16px;border-top:1px solid #f0f0f0;">
+          <div style="font-size:14px;font-weight:600;margin-bottom:8px;">报关信息</div>
+          <div class="info-grid" style="grid-template-columns: repeat(3, 1fr);">
+            <div class="info-item"><div class="info-label">报关 HSCODE</div><div class="info-value">9018.12</div></div>
+            <div class="info-item"><div class="info-label">监管条件</div><div class="info-value">A</div></div>
+            <div class="info-item"><div class="info-label">退税税点</div><div class="info-value">13%</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mockup" style="margin-top:32px">
+    <div class="mockup-label">SKU Form Page - SKU 新增/编辑页（Direction C: 分割线分区）</div>
+    <div style="background:#fff;padding:16px;">
+      <div style="font-size:18px;font-weight:600;margin-bottom:16px;">新增 SKU</div>
+      <div class="form-section">
+        <div class="form-section-title" style="color:rgba(0,0,0,0.88);font-size:15px;">基础信息</div>
+        <div class="form-row">
+          <div class="form-item"><div class="form-label"><span class="required">*</span>所属 SPU</div><select class="form-control"><option>请搜索选择 SPU...</option></select></div>
+          <div class="form-item"><div class="form-label"><span class="required">*</span>SKU 编码</div><input class="form-control" placeholder="请输入 SKU 编码"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-item"><div class="form-label">一级分类 <span class="inherited-tag">继承自 SPU</span></div><input class="form-control inherited" value="诊断设备" disabled></div>
+          <div class="form-item"><div class="form-label">二级分类 <span class="inherited-tag">继承自 SPU</span></div><input class="form-control inherited" value="超声诊断" disabled></div>
+          <div class="form-item"><div class="form-label">三级分类 <span class="inherited-tag">继承自 SPU</span></div><input class="form-control inherited" value="便携式超声" disabled></div>
+        </div>
+      </div>
+      <div class="form-section">
+        <div class="form-section-title" style="color:rgba(0,0,0,0.88);font-size:15px;">产品属性</div>
+        <div class="form-row">
+          <div class="form-item"><div class="form-label"><span class="required">*</span>产品类型</div><select class="form-control"><option>请选择</option></select></div>
+          <div class="form-item"><div class="form-label"><span class="required">*</span>核心参数</div><input class="form-control" placeholder="请输入"></div>
+          <div class="form-item"><div class="form-label"><span class="required">*</span>产品状态</div><select class="form-control"><option>上架</option></select></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Comparison -->
+<div id="dir-compare" class="direction">
+  <div class="direction-title">Design Direction Comparison</div>
+  <div class="direction-desc">三个方向的核心差异对比，帮助你做出选择。</div>
+
+  <div class="comparison">
+    <h3>核心差异对比</h3>
+    <table class="comparison-table">
+      <thead><tr><th>维度</th><th>A: Classic ERP</th><th>B: Card-Based</th><th>C: Accent Line</th></tr></thead>
+      <tbody>
+        <tr><td>表单分区样式</td><td>红色竖线 + 红色标题 + 底部分割线</td><td>独立白色卡片包裹，灰色背景间隔</td><td>黑色标题 + 底部分割线（最朴素）</td></tr>
+        <tr><td>详情页摘要</td><td>白底卡片，紧凑摘要</td><td>白底卡片，与 A 相似</td><td>左侧红色强调线，渐变背景</td></tr>
+        <tr><td>信息密度</td><td>高（紧凑间距）</td><td>中高（卡片边距占一些空间）</td><td>最高（无额外装饰元素）</td></tr>
+        <tr><td>视觉层次感</td><td>红色竖线提供强分区辨识</td><td>卡片边界提供自然分区</td><td>最简洁，靠间距和线条分区</td></tr>
+        <tr><td>品牌色运用</td><td>分区标题 + 按钮 + 导航</td><td>仅按钮 + 导航</td><td>详情摘要强调线 + 按钮 + 导航</td></tr>
+        <tr><td>适合场景</td><td>高频操作，快速扫描分区</td><td>分区多时视觉清晰</td><td>追求极致紧凑和简洁</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="comparison">
+    <h3>推荐</h3>
+    <p style="line-height:24px;color:rgba(0,0,0,0.65);">
+      <strong>推荐 Direction A（Classic ERP）</strong>作为基础方向：红色竖线分区标题在长表单中提供清晰的视觉锚点，帮助用户快速定位到目标分区，同时品牌色的运用恰到好处——存在感适中，不张扬。这也最接近领星 ERP 的风格。
+    </p>
+    <p style="line-height:24px;color:rgba(0,0,0,0.65);margin-top:8px;">
+      可以从 Direction C 借鉴详情页的左侧红色强调线（用于摘要区），增加详情页的品牌辨识度。
+    </p>
+  </div>
+</div>
+
+</div>
+
+<script>
+function showDir(id) {
+  document.querySelectorAll('.direction').forEach(d => d.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('dir-' + id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+
+</body>
+</html>
