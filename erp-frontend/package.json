@@ -13,12 +13,14 @@
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0"
   },
   "dependencies": {
+    "@ant-design/icons": "^6.1.1",
     "@hookform/resolvers": "^3.9.0",
     "@tanstack/react-query": "^5.56.0",
     "antd": "^5.20.0",
     "axios": "^1.7.0",
     "dayjs": "^1.11.0",
     "react": "^19.0.0",
+    "react-activation": "^0.13.4",
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.53.0",
     "react-router-dom": "^6.26.0",

@@ -10,6 +10,16 @@
 - TokenResponse 缺少 refresh_token 字段 — Story 1.2 占位文件，届时补全
 - lifespan 为空占位，DB 启动探测未实现 — Story 1.6 待填充调度器和启动检查
 
+## Deferred from: code review of 1-4-前端应用骨架与导航系统 (2026-04-15)
+
+- 前端权限仅菜单可见性，不是安全门控 — 后端 RBAC 已在 Story 1.3 实现，API 层有保护，无需前端路由守卫
+- `closeOtherTabs` 传入不存在 key 时 `activeTabKey` 可能悬空 — 极低概率，无现实触发路径，后续可加防御判断
+- `usePermission` 在 `getMe` 异步完成前返回全 false — Story 1.2 架构，若需优化可在 ProtectedRoute 中等待 user 加载后再渲染子树
+- `defaultOpenKeys` 折叠/展开后不持久 — AntD 已知行为；如需持久，可将 openKeys 受控并存入 uiStore
+- 通配符重定向丢失原始目标 URL — 如需实现 post-login redirect，ProtectedRoute 应保存 `location` 到 state
+- `queryClient` 模块级单例测试间可能串缓存 — 如影响测试稳定性，可在测试 setup 中调用 `queryClient.clear()`
+- `ProtectedRoute` 不检测会话期间 token 过期 — Story 1.2 范畴；可通过 Axios 401 拦截器触发登出解决
+
 ## Deferred from: code review of 1-2-用户认证系统 (2026-04-14)
 
 - Token 无吊销机制，logout/refresh 后旧 token 仍有效至过期 — 需 Redis/DB 黑名单基础设施，超出 Story 1.2 范围

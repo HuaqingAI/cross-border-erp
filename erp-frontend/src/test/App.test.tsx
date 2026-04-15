@@ -1,7 +1,5 @@
 import { describe, it, expect, vi, beforeAll } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { ConfigProvider } from 'antd'
 import App from '../App'
 
 // jsdom doesn't implement matchMedia; mock it for Ant Design responsive components
@@ -31,47 +29,17 @@ vi.mock('../api/auth', () => ({
   },
 }))
 
-function createTestWrapper() {
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false } },
-  })
-
-  const Wrapper = ({ children }: { children: React.ReactNode }) => (
-    <QueryClientProvider client={queryClient}>
-      <ConfigProvider>
-        {children}
-      </ConfigProvider>
-    </QueryClientProvider>
-  )
-  Wrapper.displayName = 'TestWrapper'
-  return Wrapper
-}
-
 describe('App', () => {
   it('renders without crashing (smoke test)', async () => {
-    const Wrapper = createTestWrapper()
-    render(
-      <Wrapper>
-        <App />
-      </Wrapper>
-    )
+    render(<App />)
     // ProtectedRoute checks auth then redirects to /login where the title appears
     expect(await screen.findByText('跨境ERP系统')).toBeInTheDocument()
   })
 
-  it('QueryClient and ConfigProvider wrap App correctly', () => {
-    const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    })
-
-    const { container } = render(
-      <QueryClientProvider client={queryClient}>
-        <ConfigProvider>
-          <App />
-        </ConfigProvider>
-      </QueryClientProvider>
-    )
-
+  it('renders login page when not authenticated', async () => {
+    const { container } = render(<App />)
     expect(container.firstChild).not.toBeNull()
+    // Should show login page
+    expect(await screen.findByText('跨境ERP系统')).toBeInTheDocument()
   })
 })

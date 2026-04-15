@@ -17,3 +17,14 @@ body {
 #root {
   min-height: 100vh;
 }
+
+/* editable-card 模式下选中页签的红色底部边框（AC: 页签选中态显示红色底部边框） */
+.ant-tabs-card > .ant-tabs-nav .ant-tabs-tab-active,
+.ant-tabs-card > div > .ant-tabs-nav .ant-tabs-tab-active {
+  border-bottom: 2px solid #C41D2E !important;
+  color: #C41D2E;
+}
+.ant-tabs-card > .ant-tabs-nav .ant-tabs-tab-active .ant-tabs-tab-btn,
+.ant-tabs-card > div > .ant-tabs-nav .ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: #C41D2E;
+}
