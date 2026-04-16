@@ -1,12 +1,10 @@
-version: '3.9'
-
 # Production overrides — use with: docker compose -f docker-compose.yml -f docker-compose.prod.yml up
 services:
   api:
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
+    # APScheduler currently runs inside FastAPI lifespan, so production must keep a single API worker.
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1
     environment:
       - DEBUG=false
-    volumes: []  # No code volume mount in production
 
   nginx:
     volumes:
