@@ -53,8 +53,8 @@ development_status:
   epic-1-retrospective: optional
 
   # Epic 2: 产品分类管理
-  epic-2: backlog
-  2-1-分类数据模型与三级分类-crud-api: backlog
+  epic-2: in-progress
+  2-1-分类数据模型与三级分类-crud-api: done
   2-2-分类管理前端页面: backlog
   epic-2-retrospective: optional
 

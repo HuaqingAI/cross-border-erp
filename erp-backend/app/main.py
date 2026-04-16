@@ -37,8 +37,10 @@ register_exception_handlers(app)
 
 # Router 注册
 from app.routers import auth as auth_router  # noqa: E402
+from app.routers import product_categories as product_categories_router  # noqa: E402
 
 app.include_router(auth_router.router, prefix="/api/v1")
+app.include_router(product_categories_router.router, prefix="/api/v1")
 
 
 @app.get("/health")
