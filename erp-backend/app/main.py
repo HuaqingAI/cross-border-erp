@@ -6,13 +6,16 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.core.exceptions import register_exception_handlers
+from app.core.scheduler import init_scheduler, shutdown_scheduler
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # 启动时：初始化 scheduler 等（Story 1.6 填充）
-    yield
-    # 关闭时：停止 scheduler 等（Story 1.6 填充）
+    init_scheduler(app)
+    try:
+        yield
+    finally:
+        shutdown_scheduler(app)
 
 
 app = FastAPI(

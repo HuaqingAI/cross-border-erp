@@ -34,6 +34,7 @@ jobs:
       - name: Run tests
         run: cd erp-backend && pytest tests/ -v --cov=app --cov-report=term-missing
         env:
+          TEST_DB_URL: mysql+aiomysql://root:test@127.0.0.1:3306/erp_test
           DATABASE_URL: mysql+aiomysql://root:test@localhost:3306/erp_test
 
   frontend-test:
