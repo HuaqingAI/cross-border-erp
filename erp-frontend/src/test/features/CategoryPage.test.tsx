@@ -149,7 +149,7 @@ describe('CategoryPage', () => {
 
     expect(await screen.findByText('一级分类')).toBeInTheDocument()
     expect(screen.getByText('分类详情')).toBeInTheDocument()
-    expect(screen.getByDisplayValue('ROOT001')).toBeInTheDocument()
+    expect(screen.getAllByText('ROOT001').length).toBeGreaterThan(0)
   })
 
   it('产品部用户可见新增一级分类操作', async () => {
@@ -162,7 +162,7 @@ describe('CategoryPage', () => {
   it('只读角色不可见编辑操作', async () => {
     renderCategoryPage('business_dept')
 
-    expect(await screen.findByText('一级分类')).toBeInTheDocument()
+    expect(await screen.findByText('分类详情')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: '新增一级分类' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /保\s*存/ })).not.toBeInTheDocument()
     expect(screen.getByText('当前角色仅可浏览分类树，编辑功能已禁用')).toBeInTheDocument()

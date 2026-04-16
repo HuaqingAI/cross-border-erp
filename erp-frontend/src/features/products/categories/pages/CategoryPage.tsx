@@ -4,7 +4,6 @@ import type { DataNode, TreeProps } from 'antd/es/tree'
 import { useEffect, useState } from 'react'
 import { categoriesApi } from '../../../../api/categories'
 import FilterCard from '../../../../components/common/FilterCard'
-import FixedActionBar from '../../../../components/common/FixedActionBar'
 import SectionTitle from '../../../../components/common/SectionTitle'
 import { usePermission } from '../../../../hooks/usePermission'
 import type { CategoryMutationPayload, CategoryTreeNode } from '../../../../types/product'
@@ -14,6 +13,12 @@ type EditorMode = 'edit' | 'create-root' | 'create-child'
 interface CategoryFormValues {
   code: string
   name: string
+}
+
+interface DetailFieldProps {
+  label: string
+  value: string
+  accent?: boolean
 }
 
 function findNodeById(
@@ -85,6 +90,22 @@ function getErrorMessage(error: unknown): string {
     return error.response.data.message
   }
   return '操作失败，请稍后重试'
+}
+
+function DetailField({ label, value, accent = false }: DetailFieldProps) {
+  return (
+    <div
+      style={{
+        padding: '12px 14px',
+        borderRadius: 4,
+        background: accent ? '#fff7f7' : '#fafafa',
+        border: accent ? '1px solid rgba(196,29,46,0.18)' : '1px solid #f0f0f0',
+      }}
+    >
+      <div style={{ color: 'rgba(0,0,0,0.45)', fontSize: 12, marginBottom: 6 }}>{label}</div>
+      <div style={{ color: 'rgba(0,0,0,0.88)', fontSize: 15, fontWeight: 500 }}>{value}</div>
+    </div>
+  )
 }
 
 export default function CategoryPage() {
@@ -293,9 +314,28 @@ export default function CategoryPage() {
 
   const isCreateMode = editorMode === 'create-root' || editorMode === 'create-child'
   const treeData = toTreeData(tree)
+  const showEditor = Boolean(selectedCategory) || isCreateMode
+  const parentDisplay =
+    editorMode === 'create-root'
+      ? '无'
+      : editorMode === 'create-child' && selectedCategory
+        ? selectedCategory.name
+        : selectedParent?.name ?? '根节点'
+  const levelDisplay =
+    editorMode === 'create-root'
+      ? '第 1 级'
+      : editorMode === 'create-child' && selectedCategory
+        ? `第 ${selectedCategory.level + 1} 级`
+        : selectedCategory
+          ? `第 ${selectedCategory.level} 级`
+          : ''
+  const codeDisplay =
+    editorMode === 'create-root' || editorMode === 'create-child'
+      ? form.getFieldValue('code') || '待填写'
+      : selectedCategory?.code ?? '—'
 
   return (
-    <div style={{ padding: 24, minHeight: '100%', paddingBottom: canEdit ? 88 : 24 }}>
+    <div style={{ padding: 24, minHeight: '100%' }}>
       <SectionTitle title="分类管理" />
       <div
         style={{
@@ -305,7 +345,23 @@ export default function CategoryPage() {
         }}
       >
         <FilterCard>
-          <Space style={{ marginBottom: 16 }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 16,
+              marginBottom: 16,
+            }}
+          >
+            <div>
+              <div style={{ color: 'rgba(0,0,0,0.88)', fontSize: 15, fontWeight: 600, marginBottom: 4 }}>
+                分类树
+              </div>
+              <div style={{ color: 'rgba(0,0,0,0.45)', fontSize: 13 }}>
+                支持展开、折叠与同级排序
+              </div>
+            </div>
             {canEdit ? (
               <Button type="primary" onClick={handleCreateRoot}>
                 新增一级分类
@@ -313,10 +369,7 @@ export default function CategoryPage() {
             ) : (
               <Tag color="default">只读模式</Tag>
             )}
-            <span style={{ color: 'rgba(0,0,0,0.45)', fontSize: 13 }}>
-              支持展开/折叠与同级排序
-            </span>
-          </Space>
+          </div>
 
           {categoriesQuery.isLoading ? (
             <div style={{ minHeight: 360, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -340,45 +393,71 @@ export default function CategoryPage() {
         </FilterCard>
 
         <div style={{ background: '#fff', borderRadius: 4, border: '1px solid #f0f0f0', padding: 24 }}>
-          <SectionTitle
-            title={
-              editorMode === 'create-root'
-                ? '新增一级分类'
-                : editorMode === 'create-child'
-                  ? '新增子分类'
-                  : '分类详情'
-            }
-          />
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              justifyContent: 'space-between',
+              gap: 16,
+              marginBottom: 16,
+            }}
+          >
+            <SectionTitle
+              title={
+                editorMode === 'create-root'
+                  ? '新增一级分类'
+                  : editorMode === 'create-child'
+                    ? '新增子分类'
+                    : '分类详情'
+              }
+            />
+            {showEditor && canEdit ? (
+              <Space wrap>
+                {editorMode === 'edit' && selectedCategory && selectedCategory.level < 3 ? (
+                  <Button onClick={handleCreateChild}>新增子分类</Button>
+                ) : null}
+                {editorMode === 'edit' && selectedCategory ? (
+                  <Popconfirm
+                    title="确认删除该分类？"
+                    description="删除后不可恢复，请谨慎操作。"
+                    onConfirm={() => deleteMutation.mutate(selectedCategory.id)}
+                    okText="删除"
+                    cancelText="取消"
+                  >
+                    <Button danger loading={deleteMutation.isPending}>
+                      删除
+                    </Button>
+                  </Popconfirm>
+                ) : null}
+                <Button onClick={handleCancel}>取消</Button>
+                <Button
+                  type="primary"
+                  onClick={() => void form.submit()}
+                  loading={saveMutation.isPending || deleteMutation.isPending || sortMutation.isPending}
+                >
+                  保存
+                </Button>
+              </Space>
+            ) : null}
+          </div>
 
           {!selectedCategory && !isCreateMode ? (
             <Empty description="请选择左侧分类节点" image={Empty.PRESENTED_IMAGE_SIMPLE} />
           ) : (
             <>
               {editorMode === 'edit' && selectedCategory ? (
-                <Space style={{ marginBottom: 16 }} wrap>
-                  <Tag color="red">第 {selectedCategory.level} 级</Tag>
-                  {selectedCategory.parent_id ? (
-                    <Tag color="default">父级 ID: {selectedCategory.parent_id}</Tag>
-                  ) : (
-                    <Tag color="default">根节点</Tag>
-                  )}
-                  {canEdit && selectedCategory.level < 3 ? (
-                    <Button onClick={handleCreateChild}>新增子分类</Button>
-                  ) : null}
-                  {canEdit && selectedCategory ? (
-                    <Popconfirm
-                      title="确认删除该分类？"
-                      description="删除后不可恢复，请谨慎操作。"
-                      onConfirm={() => deleteMutation.mutate(selectedCategory.id)}
-                      okText="删除"
-                      cancelText="取消"
-                    >
-                      <Button danger loading={deleteMutation.isPending}>
-                        删除
-                      </Button>
-                    </Popconfirm>
-                  ) : null}
-                </Space>
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+                    gap: 12,
+                    marginBottom: 16,
+                  }}
+                >
+                  <DetailField label="层级" value={levelDisplay} accent />
+                  <DetailField label="父级" value={parentDisplay} />
+                  <DetailField label="分类编码" value={codeDisplay} />
+                </div>
               ) : null}
 
               {editorMode === 'create-child' && selectedCategory ? (
@@ -396,48 +475,38 @@ export default function CategoryPage() {
                 </div>
               ) : null}
 
-              <Form<CategoryFormValues>
-                form={form}
-                layout="vertical"
-                onFinish={(values) => saveMutation.mutate(values)}
-                disabled={!canEdit}
-              >
-                <Form.Item label="分类编码" name="code" rules={[{ required: true, message: '请输入分类编码' }]}>
-                  <Input
-                    placeholder="请输入分类编码"
-                    disabled={!isCreateMode || !canEdit}
-                  />
-                </Form.Item>
-                <Form.Item label="分类名称" name="name" rules={[{ required: true, message: '请输入分类名称' }]}>
-                  <Input placeholder="请输入分类名称" disabled={!canEdit} />
-                </Form.Item>
-                <Form.Item label="层级">
-                  <Input
-                    value={
-                      editorMode === 'create-root'
-                        ? '一级分类'
-                        : editorMode === 'create-child' && selectedCategory
-                          ? `第 ${selectedCategory.level + 1} 级`
-                          : selectedCategory
-                            ? `第 ${selectedCategory.level} 级`
-                            : ''
-                    }
-                    disabled
-                  />
-                </Form.Item>
-                <Form.Item label="父级分类">
-                  <Input
-                    value={
-                      editorMode === 'create-root'
-                        ? '无'
-                        : editorMode === 'create-child' && selectedCategory
-                          ? selectedCategory.name
-                          : selectedParent?.name ?? '无'
-                    }
-                    disabled
-                  />
-                </Form.Item>
-              </Form>
+              {canEdit ? (
+                <Form<CategoryFormValues>
+                  form={form}
+                  layout="vertical"
+                  onFinish={(values) => saveMutation.mutate(values)}
+                >
+                  {isCreateMode ? (
+                    <Form.Item label="分类编码" name="code" rules={[{ required: true, message: '请输入分类编码' }]}>
+                      <Input placeholder="请输入分类编码" />
+                    </Form.Item>
+                  ) : null}
+                  <Form.Item label="分类名称" name="name" rules={[{ required: true, message: '请输入分类名称' }]}>
+                    <Input placeholder="请输入分类名称" />
+                  </Form.Item>
+                </Form>
+              ) : (
+                <>
+                  <Form form={form} component={false} />
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                      gap: 12,
+                    }}
+                  >
+                    <DetailField label="分类名称" value={selectedCategory?.name ?? '—'} />
+                    <DetailField label="分类编码" value={selectedCategory?.code ?? '—'} />
+                    <DetailField label="层级" value={levelDisplay} />
+                    <DetailField label="父级分类" value={parentDisplay} />
+                  </div>
+                </>
+              )}
 
               {!canEdit ? (
                 <Tag color="default">当前角色仅可浏览分类树，编辑功能已禁用</Tag>
@@ -446,16 +515,6 @@ export default function CategoryPage() {
           )}
         </div>
       </div>
-
-      {canEdit ? (
-        <FixedActionBar
-          onCancel={handleCancel}
-          onSave={() => void form.submit()}
-          loading={saveMutation.isPending || deleteMutation.isPending || sortMutation.isPending}
-          saveText="保存"
-          cancelText="取消"
-        />
-      ) : null}
     </div>
   )
 }
