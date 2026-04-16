@@ -106,6 +106,20 @@ async def test_category_code_must_be_unique(client: AsyncClient, db_session: Asy
 
 
 @pytest.mark.asyncio
+async def test_deleted_category_code_can_be_reused(client: AsyncClient, db_session: AsyncSession):
+    await _login_as_role(client, db_session, UserRole.PRODUCT_DEPT)
+
+    category_id = (await _create_category(client, "REUSE001", "旧分类")).json()["id"]
+    delete_response = await client.delete(f"/api/v1/products/categories/{category_id}")
+    recreate_response = await _create_category(client, "REUSE001", "新分类")
+
+    assert delete_response.status_code == 200
+    assert recreate_response.status_code == 201
+    assert recreate_response.json()["code"] == "REUSE001"
+    assert recreate_response.json()["name"] == "新分类"
+
+
+@pytest.mark.asyncio
 async def test_cannot_modify_category_code(client: AsyncClient, db_session: AsyncSession):
     await _login_as_role(client, db_session, UserRole.PRODUCT_DEPT)
     category_id = (await _create_category(client, "IMMUT001", "不可改编码")).json()["id"]
@@ -168,16 +182,24 @@ async def test_sort_endpoint_changes_tree_order(client: AsyncClient, db_session:
 
 
 @pytest.mark.asyncio
-async def test_cannot_delete_category_with_children(client: AsyncClient, db_session: AsyncSession):
+async def test_delete_parent_category_cascades_to_children(client: AsyncClient, db_session: AsyncSession):
     await _login_as_role(client, db_session, UserRole.PRODUCT_DEPT)
 
     root_id = (await _create_category(client, "DEL001", "父分类")).json()["id"]
-    await _create_category(client, "DEL002", "子分类", parent_id=root_id)
+    child_id = (await _create_category(client, "DEL002", "子分类", parent_id=root_id)).json()["id"]
+    grandchild_id = (await _create_category(client, "DEL005", "孙分类", parent_id=child_id)).json()["id"]
 
     response = await client.delete(f"/api/v1/products/categories/{root_id}")
 
-    assert response.status_code == 400
-    assert response.json()["message"] == "该分类下存在子分类，无法删除"
+    assert response.status_code == 200
+    assert response.json()["message"] == "删除成功"
+
+    result = await db_session.execute(
+        select(ProductCategory).where(ProductCategory.id.in_([root_id, child_id, grandchild_id]))
+    )
+    deleted_categories = result.scalars().all()
+    assert len(deleted_categories) == 3
+    assert all(category.deleted_at is not None for category in deleted_categories)
 
 
 @pytest.mark.asyncio
@@ -224,6 +246,42 @@ async def test_cannot_delete_category_with_linked_spu(client: AsyncClient, db_se
     await db_session.commit()
 
     response = await client.delete(f"/api/v1/products/categories/{category_id}")
+
+    assert response.status_code == 400
+    assert response.json()["message"] == "该分类下已有产品关联，无法删除"
+
+
+@pytest.mark.asyncio
+async def test_cannot_delete_parent_category_when_descendant_has_linked_spu(
+    client: AsyncClient,
+    db_session: AsyncSession,
+):
+    metadata = MetaData()
+    spus = Table(
+        "spus",
+        metadata,
+        Column("id", Integer, primary_key=True, autoincrement=True),
+        Column("code", String(50), nullable=False),
+        Column("level3_category_id", Integer, nullable=False),
+        Column("deleted_at", DateTime, nullable=True),
+    )
+    connection = await db_session.connection()
+    await connection.run_sync(metadata.create_all)
+
+    await _login_as_role(client, db_session, UserRole.PRODUCT_DEPT)
+    root_id = (await _create_category(client, "DEL006", "父分类")).json()["id"]
+    child_id = (await _create_category(client, "DEL007", "子分类", parent_id=root_id)).json()["id"]
+
+    await db_session.execute(
+        insert(spus).values(
+            code="SPU002",
+            level3_category_id=child_id,
+            deleted_at=None,
+        )
+    )
+    await db_session.commit()
+
+    response = await client.delete(f"/api/v1/products/categories/{root_id}")
 
     assert response.status_code == 400
     assert response.json()["message"] == "该分类下已有产品关联，无法删除"

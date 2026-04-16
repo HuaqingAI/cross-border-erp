@@ -43,7 +43,8 @@ class ProductCategoryService:
         return roots
 
     async def create_category(self, data: ProductCategoryCreate) -> ProductCategory:
-        if await self.repo.get_by_code(data.code):
+        existing = await self.repo.get_by_code_including_deleted(data.code)
+        if existing and existing.deleted_at is None:
             raise BusinessError("分类编码已存在")
 
         level = 1
@@ -59,13 +60,21 @@ class ProductCategoryService:
         if sort_order is None:
             sort_order = await self.repo.get_next_sort_order(data.parent_id)
 
-        category = ProductCategory(
-            code=data.code,
-            name=data.name,
-            level=level,
-            parent_id=data.parent_id,
-            sort_order=sort_order,
-        )
+        if existing and existing.deleted_at is not None:
+            category = existing
+            category.deleted_at = None
+            category.name = data.name
+            category.level = level
+            category.parent_id = data.parent_id
+            category.sort_order = sort_order
+        else:
+            category = ProductCategory(
+                code=data.code,
+                name=data.name,
+                level=level,
+                parent_id=data.parent_id,
+                sort_order=sort_order,
+            )
         return await self.repo.save(category)
 
     async def update_category(
@@ -95,14 +104,16 @@ class ProductCategoryService:
         return await self.repo.save(category)
 
     async def delete_category(self, category_id: int) -> None:
-        category = await self._get_required_category(category_id)
+        categories = await self.repo.list_subtree(category_id)
+        if not categories:
+            raise BusinessError("分类不存在", code="NOT_FOUND", status_code=404)
 
-        if await self.repo.has_children(category.id):
-            raise BusinessError("该分类下存在子分类，无法删除")
-        if await self._has_linked_products(category.id):
+        category_ids = [category.id for category in categories]
+        if await self._has_linked_products(category_ids):
             raise BusinessError("该分类下已有产品关联，无法删除")
 
-        await self.repo.soft_delete(category)
+        for category in reversed(categories):
+            await self.repo.soft_delete(category)
 
     async def _get_required_category(self, category_id: int) -> ProductCategory:
         category = await self.repo.get_by_id(category_id)
@@ -110,5 +121,5 @@ class ProductCategoryService:
             raise BusinessError("分类不存在", code="NOT_FOUND", status_code=404)
         return category
 
-    async def _has_linked_products(self, category_id: int) -> bool:
-        return await self.repo.has_linked_spus(category_id)
+    async def _has_linked_products(self, category_ids: list[int]) -> bool:
+        return await self.repo.has_linked_spus_in_categories(category_ids)

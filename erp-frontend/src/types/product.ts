@@ -1,11 +1,28 @@
-// 后续 Epic 2-4 将定义完整的产品类型
-// 占位文件
-
 export interface Category {
   id: number
   name: string
   parent_id: number | null
   level: number
+}
+
+export interface ProductCategory extends Category {
+  code: string
+  sort_order: number
+}
+
+export interface CategoryTreeNode extends ProductCategory {
+  children: CategoryTreeNode[]
+}
+
+export interface CategoryMutationPayload {
+  code: string
+  name: string
+  parent_id?: number
+  sort_order?: number
+}
+
+export interface CategorySortPayload {
+  sort_order: number
 }
 
 export interface Spu {

@@ -18,6 +18,12 @@ class ProductCategoryRepository(BaseRepository[ProductCategory]):
         )
         return result.scalar_one_or_none()
 
+    async def get_by_code_including_deleted(self, code: str) -> ProductCategory | None:
+        result = await self.db.execute(
+            select(self.model).where(self.model.code == code)
+        )
+        return result.scalar_one_or_none()
+
     async def list_tree_nodes(self) -> list[ProductCategory]:
         result = await self.db.execute(
             select(self.model)
@@ -35,14 +41,19 @@ class ProductCategoryRepository(BaseRepository[ProductCategory]):
         )
         return list(result.scalars().all())
 
-    async def has_children(self, category_id: int) -> bool:
-        result = await self.db.execute(
-            select(func.count(self.model.id)).where(
-                self.model.parent_id == category_id,
-                self.model.deleted_at.is_(None),
-            )
-        )
-        return (result.scalar_one() or 0) > 0
+    async def list_subtree(self, root_category_id: int) -> list[ProductCategory]:
+        root = await self.get_by_id(root_category_id)
+        if root is None:
+            return []
+
+        result: list[ProductCategory] = [root]
+        queue = [root]
+        while queue:
+            current = queue.pop(0)
+            children = await self.list_children(current.id)
+            result.extend(children)
+            queue.extend(children)
+        return result
 
     async def get_next_sort_order(self, parent_id: int | None) -> int:
         stmt: Select[tuple[int | None]] = select(func.max(self.model.sort_order)).where(
@@ -76,6 +87,41 @@ class ProductCategoryRepository(BaseRepository[ProductCategory]):
         ]
         filters = [
             spus_table.c[column_name] == category_id
+            for column_name in candidate_columns
+            if column_name in spus_table.c
+        ]
+        if not filters:
+            return False
+
+        stmt = select(func.count()).select_from(spus_table).where(or_(*filters))
+        if "deleted_at" in spus_table.c:
+            stmt = stmt.where(spus_table.c.deleted_at.is_(None))
+
+        result = await self.db.execute(stmt)
+        return (result.scalar_one() or 0) > 0
+
+    async def has_linked_spus_in_categories(self, category_ids: list[int]) -> bool:
+        if not category_ids:
+            return False
+
+        spus_table = await self._load_table("spus")
+        if spus_table is None:
+            return False
+
+        candidate_columns = [
+            "category_id",
+            "level1_category_id",
+            "level2_category_id",
+            "level3_category_id",
+            "category_level1_id",
+            "category_level2_id",
+            "category_level3_id",
+            "first_category_id",
+            "second_category_id",
+            "third_category_id",
+        ]
+        filters = [
+            spus_table.c[column_name].in_(category_ids)
             for column_name in candidate_columns
             if column_name in spus_table.c
         ]
