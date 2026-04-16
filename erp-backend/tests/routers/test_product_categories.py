@@ -2,7 +2,7 @@ import uuid
 
 import pytest
 from httpx import AsyncClient
-from sqlalchemy import select, text
+from sqlalchemy import Column, DateTime, Integer, MetaData, String, Table, insert, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import hash_password
@@ -199,31 +199,27 @@ async def test_delete_leaf_category_soft_deletes_record(client: AsyncClient, db_
 
 @pytest.mark.asyncio
 async def test_cannot_delete_category_with_linked_spu(client: AsyncClient, db_session: AsyncSession):
-    await db_session.execute(
-        text(
-            """
-            CREATE TABLE spus (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                code VARCHAR(50) NOT NULL,
-                level3_category_id INTEGER NOT NULL,
-                deleted_at DATETIME NULL
-            )
-            """
-        )
+    metadata = MetaData()
+    spus = Table(
+        "spus",
+        metadata,
+        Column("id", Integer, primary_key=True, autoincrement=True),
+        Column("code", String(50), nullable=False),
+        Column("level3_category_id", Integer, nullable=False),
+        Column("deleted_at", DateTime, nullable=True),
     )
-    await db_session.commit()
+    connection = await db_session.connection()
+    await connection.run_sync(metadata.create_all)
 
     await _login_as_role(client, db_session, UserRole.PRODUCT_DEPT)
     category_id = (await _create_category(client, "DEL004", "SPU关联分类")).json()["id"]
 
     await db_session.execute(
-        text(
-            """
-            INSERT INTO spus (code, level3_category_id, deleted_at)
-            VALUES (:code, :category_id, NULL)
-            """
-        ),
-        {"code": "SPU001", "category_id": category_id},
+        insert(spus).values(
+            code="SPU001",
+            level3_category_id=category_id,
+            deleted_at=None,
+        )
     )
     await db_session.commit()
 
