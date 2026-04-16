@@ -30,7 +30,9 @@ def make_test_db_url() -> str:
 async def test_engine():
     """每个测试独立的内存 SQLite 数据库（共享连接，让 client 和 db_session 看到同一数据）。"""
     url = make_test_db_url()
-    engine = create_async_engine(url, connect_args={"check_same_thread": False})
+    # Only SQLite accepts `check_same_thread`; MySQL (CI) should not receive it.
+    connect_args = {"check_same_thread": False} if url.startswith("sqlite+") else {}
+    engine = create_async_engine(url, connect_args=connect_args)
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     yield engine
