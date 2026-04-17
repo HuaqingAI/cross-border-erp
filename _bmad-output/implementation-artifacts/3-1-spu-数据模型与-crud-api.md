@@ -1,6 +1,6 @@
 # Story 3.1: SPU 数据模型与 CRUD API
 
-**Status:** review
+**Status:** done
 **Story Key:** 3-1-spu-数据模型与-crud-api
 **Epic:** 3 - SPU 管理
 **Date:** 2026-04-17
@@ -276,3 +276,4 @@ So that 产品型号数据完整录入系统，作为 SKU 的父级实体和数�
 - 2026-04-17: Story 创建，状态 ready-for-dev
 - 2026-04-17: Story 实现完成，后端 59 个测试全部通过，状态更新为 review
 - 2026-04-17: 根据 code review 修复接口响应模型声明与分类删除保护测试夹具问题，后端 59 个测试重新通过
+- 2026-04-17: 分支已合并到 main，Story 状态更新为 done

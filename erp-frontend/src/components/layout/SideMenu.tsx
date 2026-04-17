@@ -26,6 +26,14 @@ export const TAB_LABELS: Record<string, string> = {
   '/admin/enums': '系统配置',
 }
 
+export function resolveTabLabel(path: string): string | undefined {
+  if (TAB_LABELS[path]) return TAB_LABELS[path]
+  if (path === '/products/spus/new') return '新增SPU'
+  if (/^\/products\/spus\/[^/]+\/edit$/.test(path)) return '编辑SPU'
+  if (/^\/products\/spus\/[^/]+$/.test(path)) return 'SPU详情'
+  return undefined
+}
+
 export default function SideMenu() {
   const navigate = useNavigate()
   const location = useLocation()
@@ -37,7 +45,7 @@ export default function SideMenu() {
   const handleMenuClick = ({ key }: { key: string }) => {
     // 父级菜单组（key 无斜杠前缀）只展开/收起子菜单，不做路由跳转
     if (!key.startsWith('/')) return
-    const label = TAB_LABELS[key] ?? key
+    const label = resolveTabLabel(key) ?? key
     openTab({ key, label, closable: true })
     navigate(key)
   }
