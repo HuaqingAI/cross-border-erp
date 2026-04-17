@@ -1,6 +1,6 @@
 # Story 3.3: SPU 新增编辑表单页
 
-**Status:** in-progress
+**Status:** done
 **Story Key:** 3-3-spu-新增编辑表单页
 **Epic:** 3 - SPU 管理
 **Date:** 2026-04-17
@@ -66,39 +66,39 @@ So that SPU 数据一次性录入完整，无需多次保存。
 | 1-4 | done | 页签导航、KeepAlive、菜单路由已可复用 |
 | 1-5 | done | `SectionTitle`、`FixedActionBar` 等通用组件已可复用 |
 | 3-1 | done | SPU 创建/详情/更新 API 已可用 |
-| 3-2 | review | `/products/spus/new`、`/products/spus/:id/edit` 路由与动态页签标题已接通 |
+| 3-2 | done | `/products/spus/new`、`/products/spus/:id/edit` 路由与动态页签标题已接通 |
 
 ---
 
 ## 实施任务建议
 
-- [ ] Task 1: SPU API 与类型补全
-  - [ ] 扩展 `erp-frontend/src/api/spus.ts`，新增 `getById`、`create`、`update`
-  - [ ] 在 `erp-frontend/src/types/product.ts` 增补 SPU 明细、开票信息、表单 payload 类型
-  - [ ] 封装表单到后端 payload 的转换逻辑
+- [x] Task 1: SPU API 与类型补全
+  - [x] 扩展 `erp-frontend/src/api/spus.ts`，新增 `getById`、`create`、`update`
+  - [x] 在 `erp-frontend/src/types/product.ts` 增补 SPU 明细、开票信息、表单 payload 类型
+  - [x] 封装表单到后端 payload 的转换逻辑
 
-- [ ] Task 2: SPU 表单页主体结构
-  - [ ] 重写 `erp-frontend/src/features/products/spus/pages/SPUFormPage.tsx`
-  - [ ] 根据路由区分新增态 `/products/spus/new` 与编辑态 `/products/spus/:id/edit`
-  - [ ] 页面按三个 `SectionTitle` 分区渲染
-  - [ ] 页面底部使用 `FixedActionBar`
+- [x] Task 2: SPU 表单页主体结构
+  - [x] 重写 `erp-frontend/src/features/products/spus/pages/SPUFormPage.tsx`
+  - [x] 根据路由区分新增态 `/products/spus/new` 与编辑态 `/products/spus/:id/edit`
+  - [x] 页面按三个 `SectionTitle` 分区渲染
+  - [x] 页面底部使用 `FixedActionBar`
 
-- [ ] Task 3: 字段与交互
-  - [ ] 分类字段接三级联动 `Cascader`
-  - [ ] 供应商字段实现可搜索的远程选择交互或明确降级为普通输入
-  - [ ] 开票信息区域实现可编辑子表，支持新增与删除
-  - [ ] 编辑态下 `code` 只读并显示不可修改提示
+- [x] Task 3: 字段与交互
+  - [x] 分类字段接三级联动 `Cascader`
+  - [x] 供应商字段实现可搜索的远程选择交互或明确降级为普通输入
+  - [x] 开票信息区域实现可编辑子表，支持新增与删除
+  - [x] 编辑态下 `code` 只读并显示不可修改提示
 
-- [ ] Task 4: 保存与页签行为
-  - [ ] 新增态提交调用 `POST /api/v1/spus`
-  - [ ] 编辑态提交调用 `PATCH /api/v1/spus/{id}`
-  - [ ] 保存成功后 `message.success('保存成功')`
-  - [ ] 关闭当前表单页签并刷新 SPU 列表页签
+- [x] Task 4: 保存与页签行为
+  - [x] 新增态提交调用 `POST /api/v1/spus`
+  - [x] 编辑态提交调用 `PATCH /api/v1/spus/{id}`
+  - [x] 保存成功后 `message.success('保存成功')`
+  - [x] 关闭当前表单页签并刷新 SPU 列表页签
 
-- [ ] Task 5: 测试与验证
-  - [ ] 新增 `erp-frontend/src/test/features/SPUFormPage.test.tsx`
-  - [ ] 覆盖新增态渲染、编辑态回填、编码只读、开票信息增删、保存调用
-  - [ ] 跑通前端测试与构建
+- [x] Task 5: 测试与验证
+  - [x] 新增 `erp-frontend/src/test/features/SPUFormPage.test.tsx`
+  - [x] 覆盖新增态渲染、编辑态回填、编码只读、开票信息增删、保存调用
+  - [x] 跑通前端测试与构建
 
 ---
 
@@ -158,15 +158,41 @@ So that SPU 数据一次性录入完整，无需多次保存。
 ### Debug Log
 
 - 2026-04-17: 恢复 3.3 story 文件到工作区，便于继续本地开发与对照
+- 2026-04-17: 完成 SPU 表单页真实实现，接通新增/编辑、详情回填、页签关闭与缓存刷新
+- 2026-04-17: 根据 code review 修复取消不清缓存、非法编辑目标退化为空表单、开票信息最少一条等问题
+- 2026-04-17: 完成 `SPUFormPage` 专项测试，验证通过后合并入 main
 
 ### Completion Notes
 
-- 当前 story 文件为恢复版，用于继续承接 3.3 本地开发
+- 已完成 SPU 新增/编辑表单页实现，覆盖基础信息、采购信息、开票信息三个分区
+- 已接通 `getById/create/update` API、编辑态回填、保存成功后关闭当前页签并返回列表
+- 已补充 KeepAlive 下的页签清理、异常编辑目标保护，以及开票信息至少一条的前端约束
+- 已新增 `SPUFormPage` 测试并完成前端全量测试与构建验证
+- 相关改动已通过 review，PR 已合并到 main
 
 ### File List
 
+- `erp-frontend/src/features/products/spus/pages/SPUFormPage.tsx`
+- `erp-frontend/src/test/features/SPUFormPage.test.tsx`
+- `erp-frontend/src/api/spus.ts`
+- `erp-frontend/src/types/product.ts`
+- `erp-frontend/src/App.tsx`
+- `erp-frontend/src/components/common/FixedActionBar.tsx`
+- `erp-frontend/src/components/form/FormGrid.tsx`
+- `erp-frontend/src/components/layout/AppLayout.tsx`
+- `erp-frontend/src/components/layout/CacheTabs.tsx`
+- `erp-frontend/src/components/layout/SideMenu.tsx`
+- `erp-frontend/src/features/products/spus/pages/SPUListPage.tsx`
+- `erp-frontend/src/features/products/spus/pages/SPUDetailPage.tsx`
+- `erp-frontend/src/test/components/FixedActionBar.test.tsx`
+- `erp-frontend/src/test/components/FormGrid.test.tsx`
+- `erp-frontend/src/test/features/SPUListPage.test.tsx`
+- `_bmad-output/implementation-artifacts/form-field-contract-template.md`
 - `_bmad-output/implementation-artifacts/3-3-spu-新增编辑表单页.md`
 
 ### Change Log
 
 - 2026-04-17: 恢复 story 文件，状态为 in-progress
+- 2026-04-17: 完成 3.3 表单页实现与测试，状态更新为 review
+- 2026-04-17: 根据 code review 修复表单缓存清理、异常编辑保护与开票信息约束
+- 2026-04-17: PR 已合并到 main，Story 状态校准为 done
