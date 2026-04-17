@@ -1,6 +1,6 @@
 # Story 3.2: SPU 列表页与筛选
 
-**Status:** review
+**Status:** done
 **Story Key:** 3-2-spu-列表页与筛选
 **Epic:** 3 - SPU 管理
 **Date:** 2026-04-17
@@ -224,3 +224,4 @@ So that 我可以高效定位和管理产品型号。
 - 2026-04-17: Story 创建，状态 ready-for-dev
 - 2026-04-17: Story 实现完成，前端 39 个测试全部通过，状态更新为 review
 - 2026-04-17: 根据 code review 修复供应商筛选约束问题，本地验证通过
+- 2026-04-17: PR 已合并到 main，Story 状态校准为 done
