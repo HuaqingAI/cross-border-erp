@@ -153,6 +153,7 @@ function getErrorMessage(error: unknown): string {
 
 interface SPUFormPageProps {
   mode: 'create' | 'edit'
+  spuId: string | null
 }
 
 export default function SPUFormPage({ mode, spuId }: SPUFormPageProps) {
@@ -207,10 +208,13 @@ export default function SPUFormPage({ mode, spuId }: SPUFormPageProps) {
       }
       return spusApi.create(payload)
     },
-    onSuccess: async () => {
+    onSuccess: async (savedSpu) => {
       message.success('保存成功')
       await queryClient.invalidateQueries({ queryKey: ['spus-list'] })
       await queryClient.invalidateQueries({ queryKey: ['spu-supplier-options'] })
+      if (savedSpu?.id) {
+        queryClient.setQueryData(['spu-detail', savedSpu.id], savedSpu)
+      }
       await closeCurrentTabToList()
     },
     onError: (error) => {
