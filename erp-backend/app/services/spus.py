@@ -5,6 +5,7 @@ from app.core.exceptions import BusinessError
 from app.models.spu import SPU, SPUInvoiceInfo
 from app.models.user import User, UserRole
 from app.repositories.product_categories import ProductCategoryRepository
+from app.repositories.skus import SKURepository
 from app.repositories.spus import SPURepository
 from app.schemas.spu import (
     SPUCreate,
@@ -25,6 +26,7 @@ class SPUService:
     def __init__(self, db: AsyncSession):
         self.db = db
         self.repo = SPURepository(db)
+        self.sku_repo = SKURepository(db)
         self.category_repo = ProductCategoryRepository(db)
 
     async def create_spu(self, data: SPUCreate, current_user: User):
@@ -110,6 +112,24 @@ class SPUService:
         if data.invoice_infos is not None:
             self._validate_invoice_infos(data.invoice_infos)
 
+        inherited_fields_changed = (
+            new_level1_id != spu.level1_category_id
+            or new_level2_id != spu.level2_category_id
+            or new_level3_id != spu.level3_category_id
+            or (
+                data.supplier_name is not None
+                and data.supplier_name != spu.supplier_name
+            )
+            or (
+                data.customer_warranty_months is not None
+                and data.customer_warranty_months != spu.customer_warranty_months
+            )
+            or (
+                data.restricted_countries is not None
+                and data.restricted_countries != spu.restricted_countries
+            )
+        )
+
         if data.supplier_name is not None and data.supplier_name != spu.supplier_name:
             if await self.repo.has_supplier_linked_business_refs(spu.id):
                 raise BusinessError("该SPU下已有SKU被业务引用，供应商不可变更")
@@ -136,6 +156,9 @@ class SPUService:
             spu.supplier_warranty_notes = data.supplier_warranty_notes
 
         await self.repo.save(spu)
+
+        if inherited_fields_changed:
+            await self.sku_repo.sync_inherited_fields_from_spu(spu)
 
         if data.invoice_infos is not None:
             await self._replace_invoice_infos(spu.id, data.invoice_infos)

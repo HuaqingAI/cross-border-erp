@@ -5,7 +5,7 @@ from decimal import Decimal
 
 import pytest
 from httpx import AsyncClient
-from sqlalchemy import Column, DateTime, Integer, MetaData, String, Table, insert
+from sqlalchemy import Column, DateTime, Integer, MetaData, Table, insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import hash_password
@@ -265,13 +265,6 @@ async def test_cannot_change_supplier_when_linked_sku_has_business_reference(
     db_session: AsyncSession,
 ):
     metadata = MetaData()
-    skus = Table(
-        "skus",
-        metadata,
-        Column("id", Integer, primary_key=True, autoincrement=True),
-        Column("spu_id", Integer, nullable=False),
-        Column("deleted_at", DateTime, nullable=True),
-    )
     sales_order_items = Table(
         "sales_order_items",
         metadata,
@@ -290,10 +283,28 @@ async def test_cannot_change_supplier_when_linked_sku_has_business_reference(
     )
     spu_id = create_response.json()["id"]
 
-    await db_session.execute(insert(skus).values(spu_id=spu_id, deleted_at=None))
-    sku_id = (
-        await db_session.execute(skus.select().order_by(skus.c.id.desc()).limit(1))
-    ).scalar_one()
+    sku_response = await client.post(
+        "/api/v1/skus",
+        json={
+            "spu_id": spu_id,
+            "code": "SKU-SPU-LINK-001",
+            "name_zh": "设备G-标准版",
+            "name_en": "Device G Standard",
+            "product_model": "MODEL-G-001",
+            "product_type": "主品",
+            "core_params": "核心参数",
+            "principle": "工作原理",
+            "usage": "临床用途",
+            "material": "ABS",
+            "unit": "台",
+            "has_plug": True,
+            "is_special": False,
+            "package_details": [],
+        },
+    )
+    assert sku_response.status_code == 201
+    sku_id = sku_response.json()["id"]
+
     await db_session.execute(
         insert(sales_order_items).values(sku_id=sku_id, deleted_at=None)
     )
@@ -306,6 +317,67 @@ async def test_cannot_change_supplier_when_linked_sku_has_business_reference(
 
     assert response.status_code == 400
     assert response.json()["message"] == "该SPU下已有SKU被业务引用，供应商不可变更"
+
+
+@pytest.mark.asyncio
+async def test_update_spu_syncs_inherited_fields_to_existing_skus(
+    client: AsyncClient,
+    db_session: AsyncSession,
+):
+    await _login_as_role(client, db_session, UserRole.PRODUCT_DEPT)
+    category_ids_a = await _create_category_tree(client)
+    category_ids_b = await _create_category_tree(client)
+
+    create_response = await client.post(
+        "/api/v1/spus",
+        json=_spu_payload(code="SPU011", name="设备I", category_ids=category_ids_a),
+    )
+    spu_id = create_response.json()["id"]
+
+    sku_response = await client.post(
+        "/api/v1/skus",
+        json={
+            "spu_id": spu_id,
+            "code": "SKU-SPU-SYNC-001",
+            "name_zh": "设备I-标准版",
+            "name_en": "Device I Standard",
+            "product_model": "MODEL-I-001",
+            "product_type": "主品",
+            "core_params": "核心参数",
+            "principle": "工作原理",
+            "usage": "临床用途",
+            "material": "ABS",
+            "unit": "台",
+            "has_plug": True,
+            "is_special": False,
+            "package_details": [],
+        },
+    )
+    assert sku_response.status_code == 201
+    sku_id = sku_response.json()["id"]
+
+    update_response = await client.patch(
+        f"/api/v1/spus/{spu_id}",
+        json={
+            "level1_category_id": category_ids_b[0],
+            "level2_category_id": category_ids_b[1],
+            "level3_category_id": category_ids_b[2],
+            "supplier_name": "供应商同步后",
+            "restricted_countries": ["JP", "KR"],
+            "customer_warranty_months": 36,
+        },
+    )
+    assert update_response.status_code == 200
+
+    sku_detail_response = await client.get(f"/api/v1/skus/{sku_id}")
+    assert sku_detail_response.status_code == 200
+    data = sku_detail_response.json()
+    assert data["level1_category_id"] == category_ids_b[0]
+    assert data["level2_category_id"] == category_ids_b[1]
+    assert data["level3_category_id"] == category_ids_b[2]
+    assert data["supplier_name"] == "供应商同步后"
+    assert data["restricted_countries"] == ["JP", "KR"]
+    assert data["customer_warranty_months"] == 36
 
 
 @pytest.mark.asyncio
