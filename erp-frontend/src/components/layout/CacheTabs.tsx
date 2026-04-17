@@ -82,7 +82,15 @@ export default function CacheTabs() {
       items={tabItems}
       onChange={handleTabChange}
       onEdit={handleTabEdit}
-      style={{ marginBottom: 0, background: '#fff', paddingLeft: 8, paddingRight: 8 }}
+      style={{
+        marginBottom: 0,
+        background: '#fff',
+        paddingLeft: 8,
+        paddingRight: 8,
+        position: 'sticky',
+        top: 0,
+        zIndex: 30,
+      }}
       tabBarStyle={{ marginBottom: 0 }}
     />
   )

@@ -28,4 +28,12 @@ describe('FixedActionBar', () => {
     expect(screen.getByRole('button', { name: /提\s*交/ })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /返\s*回/ })).toBeInTheDocument()
   })
+
+  it('默认作为内容区内 sticky 底栏渲染', () => {
+    const { container } = render(<FixedActionBar onSave={vi.fn()} onCancel={vi.fn()} />)
+    expect(container.firstChild).toHaveStyle({
+      position: 'fixed',
+      bottom: '0px',
+    })
+  })
 })

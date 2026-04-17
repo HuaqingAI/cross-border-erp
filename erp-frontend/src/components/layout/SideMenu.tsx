@@ -88,7 +88,15 @@ export default function SideMenu() {
       collapsedWidth={48}
       onCollapse={setSidebarCollapsed}
       theme="dark"
-      style={{ background: '#001529' }}
+      style={{
+        background: '#001529',
+        height: '100vh',
+        position: 'sticky',
+        top: 0,
+        left: 0,
+        overflow: 'hidden',
+        flex: '0 0 auto',
+      }}
       trigger={
         collapsed ? (
           <MenuUnfoldOutlined style={{ color: '#fff' }} />
@@ -121,7 +129,12 @@ export default function SideMenu() {
         defaultOpenKeys={['products']}
         items={menuItems}
         onClick={handleMenuClick}
-        style={{ borderRight: 0 }}
+        style={{
+          borderRight: 0,
+          height: 'calc(100vh - 48px)',
+          overflowY: 'auto',
+          overflowX: 'hidden',
+        }}
       />
     </Sider>
   )

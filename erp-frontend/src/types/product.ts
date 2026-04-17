@@ -58,10 +58,38 @@ export interface SpuListQuery {
   keyword?: string
 }
 
+export interface SpuInvoiceInfo {
+  id?: number
+  invoice_name: string
+  invoice_unit: string
+  invoice_model: string
+  company_subject: string
+  sort_order: number
+}
+
 export interface Spu extends SpuListItem {
   purchase_warranty_months?: number | null
   supplier_warranty_notes?: string | null
   restricted_countries?: string[]
+  invoice_infos?: SpuInvoiceInfo[]
+  updated_at?: string
+}
+
+export interface SpuMutationPayload {
+  code?: string
+  name: string
+  level1_category_id: number
+  level2_category_id: number
+  level3_category_id: number
+  customer_warranty_months: number
+  unit: string
+  restricted_countries: string[]
+  supplier_name: string
+  manufacturer_model: string
+  purchase_price?: number | null
+  purchase_warranty_months?: number | null
+  supplier_warranty_notes?: string | null
+  invoice_infos: SpuInvoiceInfo[]
 }
 
 export interface Sku {

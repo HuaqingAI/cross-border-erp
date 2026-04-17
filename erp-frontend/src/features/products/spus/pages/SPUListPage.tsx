@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { Button, Cascader, Form, Input, Space, Table, Typography } from 'antd'
+import { Button, Cascader, Form, Input, Space, Table } from 'antd'
 import type { DefaultOptionType } from 'antd/es/cascader'
 import type { ColumnsType } from 'antd/es/table'
 import dayjs from 'dayjs'
@@ -7,7 +7,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { categoriesApi } from '../../../../api/categories'
 import { spusApi } from '../../../../api/spus'
-import { FilterCard, PaginationBar, SectionTitle } from '../../../../components/common'
+import { FilterCard, PaginationBar } from '../../../../components/common'
 import { usePermission } from '../../../../hooks/usePermission'
 import { useUIStore } from '../../../../stores/uiStore'
 import type { CategoryTreeNode, SpuListItem, SpuListQuery } from '../../../../types/product'
@@ -162,9 +162,7 @@ export default function SPUListPage() {
   ]
 
   return (
-    <div style={{ padding: 24 }}>
-      <SectionTitle title="SPU管理" />
-
+    <div style={{ padding: 16 }}>
       <FilterCard>
         <Form
           form={form}
@@ -211,17 +209,13 @@ export default function SPUListPage() {
 
       <div
         style={{
-          marginBottom: 12,
+          marginBottom: 8,
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
         }}
       >
-        <Typography.Text style={{ color: 'rgba(0,0,0,0.45)' }}>
-          {permission.canCreateProduct
-            ? '可通过筛选快速定位 SPU，并进入新增、查看、编辑流程'
-            : '当前角色可浏览列表并查看详情，新增与编辑功能已禁用'}
-        </Typography.Text>
+        <div />
         {permission.canCreateProduct ? (
           <Button type="primary" onClick={() => openRouteTab('/products/spus/new', '新增SPU')}>
             新增
