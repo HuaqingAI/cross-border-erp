@@ -76,6 +76,15 @@
 - 不要让“组件语义”和“真实数据来源”不一致  
   例：没有远程接口时，不要伪装成“远程搜索 Select”
 
+- 对被 `KeepAlive` 缓存、且依赖路由参数的表单页，不要让页面自己用 `useParams()` 决定核心模式  
+  推荐做法：
+  - 路由层先取参数
+  - 路由层显式传入 `mode` / `id`
+  - 页面组件根据 props 决定 create / edit / detail 行为
+  例：
+  - `/products/spus/new` → `mode=\"create\"`
+  - `/products/spus/:spuId/edit` → `mode=\"edit\" + spuId`
+
 - 所有表单页尽量统一提供两个函数：
   - `toFormValues()`
   - `toPayload()`

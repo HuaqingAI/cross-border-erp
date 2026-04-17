@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import { ConfigProvider } from 'antd'
 import zhCN from 'antd/locale/zh_CN'
 import { AliveScope, KeepAlive } from 'react-activation'
-import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import { BrowserRouter, Navigate, Route, Routes, useLocation, useParams } from 'react-router-dom'
 import AppLayout from './components/layout/AppLayout'
 import ProtectedRoute from './features/auth/components/ProtectedRoute'
 import LoginPage from './features/auth/pages/LoginPage'
@@ -59,6 +59,26 @@ function RoutedKeepAlive({ children }: { children: ReactNode }) {
   )
 }
 
+function RoutedSPUFormPage({ mode }: { mode: 'create' | 'edit' }) {
+  const { spuId } = useParams()
+
+  return (
+    <RoutedKeepAlive>
+      <SPUFormPage mode={mode} spuId={spuId ?? null} />
+    </RoutedKeepAlive>
+  )
+}
+
+function RoutedSPUDetailPage() {
+  const { spuId } = useParams()
+
+  return (
+    <RoutedKeepAlive>
+      <SPUDetailPage spuId={spuId ?? null} />
+    </RoutedKeepAlive>
+  )
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -88,27 +108,15 @@ function App() {
                   />
                   <Route
                     path="/products/spus/new"
-                    element={
-                      <RoutedKeepAlive>
-                        <SPUFormPage />
-                      </RoutedKeepAlive>
-                    }
+                    element={<RoutedSPUFormPage mode="create" />}
                   />
                   <Route
                     path="/products/spus/:spuId"
-                    element={
-                      <RoutedKeepAlive>
-                        <SPUDetailPage />
-                      </RoutedKeepAlive>
-                    }
+                    element={<RoutedSPUDetailPage />}
                   />
                   <Route
                     path="/products/spus/:spuId/edit"
-                    element={
-                      <RoutedKeepAlive>
-                        <SPUFormPage />
-                      </RoutedKeepAlive>
-                    }
+                    element={<RoutedSPUFormPage mode="edit" />}
                   />
                   <Route
                     path="/products/skus"

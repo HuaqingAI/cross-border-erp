@@ -1,7 +1,8 @@
-import { useParams } from 'react-router-dom'
+interface SPUDetailPageProps {
+  spuId: string | null
+}
 
-export default function SPUDetailPage() {
-  const { spuId } = useParams()
+export default function SPUDetailPage({ spuId }: SPUDetailPageProps) {
 
   return (
     <div style={{ padding: 24, background: '#fff', minHeight: 360 }}>

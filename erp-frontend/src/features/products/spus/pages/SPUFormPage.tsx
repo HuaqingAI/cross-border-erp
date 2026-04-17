@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Button, Cascader, Form, Input, InputNumber, Select, Space, Tooltip, message } from 'antd'
 import { useEffect, useMemo } from 'react'
 import { useAliveController } from 'react-activation'
-import { useLocation, useNavigate, useParams } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { categoriesApi } from '../../../../api/categories'
 import { spusApi } from '../../../../api/spus'
 import { FixedActionBar, SectionTitle } from '../../../../components/common'
@@ -53,6 +53,11 @@ const DEFAULT_FORM_VALUES: SpuFormValues = {
       sort_order: 0,
     },
   ],
+}
+
+interface SPUFormPageProps {
+  mode: 'create' | 'edit'
+  spuId: string | null
 }
 
 function toCategoryOptions(nodes: CategoryTreeNode[]): DefaultOptionType[] {
@@ -146,20 +151,22 @@ function getErrorMessage(error: unknown): string {
   return '保存失败，请稍后重试'
 }
 
-export default function SPUFormPage() {
+interface SPUFormPageProps {
+  mode: 'create' | 'edit'
+}
+
+export default function SPUFormPage({ mode, spuId }: SPUFormPageProps) {
   const navigate = useNavigate()
-  const location = useLocation()
   const { drop } = useAliveController()
   const queryClient = useQueryClient()
   const closeTab = useUIStore((state) => state.closeTab)
   const openTab = useUIStore((state) => state.openTab)
-  const { spuId } = useParams()
   const numericSpuId = useMemo(() => {
     if (!spuId) return null
     const parsed = Number(spuId)
     return Number.isFinite(parsed) ? parsed : null
   }, [spuId])
-  const isEditMode = location.pathname.endsWith('/edit') && numericSpuId !== null
+  const isEditMode = mode === 'edit' && numericSpuId !== null
   const [form] = Form.useForm<SpuFormValues>()
   const categoriesQuery = useQuery({
     queryKey: ['categories-tree'],
@@ -172,25 +179,23 @@ export default function SPUFormPage() {
   })
   const categoryOptions = toCategoryOptions(categoriesQuery.data ?? [])
 
+  const formInitialValues = useMemo(
+    () => (isEditMode && detailQuery.data ? toFormValues(detailQuery.data) : DEFAULT_FORM_VALUES),
+    [detailQuery.data, isEditMode],
+  )
+
   useEffect(() => {
-    form.resetFields()
-
-    if (isEditMode && detailQuery.data) {
-      form.setFieldsValue(toFormValues(detailQuery.data))
-      return
-    }
-
-    if (!isEditMode) {
-      form.setFieldsValue(DEFAULT_FORM_VALUES)
-    }
-  }, [detailQuery.data, form, isEditMode, numericSpuId])
+    form.setFieldsValue(formInitialValues)
+  }, [form, formInitialValues])
 
   const closeCurrentTabToList = async () => {
     await queryClient.invalidateQueries({ queryKey: ['spus-list'] })
     openTab({ key: '/products/spus', label: 'SPU管理', closable: true })
     navigate('/products/spus')
-    drop(location.pathname)
-    closeTab(location.pathname)
+    const currentPath =
+      mode === 'edit' && numericSpuId !== null ? `/products/spus/${numericSpuId}/edit` : '/products/spus/new'
+    drop(currentPath)
+    closeTab(currentPath)
   }
 
   const saveMutation = useMutation({
@@ -214,6 +219,26 @@ export default function SPUFormPage() {
     },
   })
 
+  if (isEditMode && detailQuery.isLoading) {
+    return (
+      <div style={{ padding: 16 }}>
+        <div
+          style={{
+            minHeight: 320,
+            background: '#fff',
+            borderRadius: 4,
+            border: '1px solid #f0f0f0',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          正在加载 SPU 数据...
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div style={{ padding: 16, minHeight: 360, paddingBottom: 96 }}>
       <div
@@ -225,11 +250,15 @@ export default function SPUFormPage() {
         }}
       >
         <Form
-          key={isEditMode ? `edit-${numericSpuId}` : 'new'}
+          key={
+            isEditMode
+              ? `edit-${numericSpuId}-${detailQuery.data?.updated_at ?? detailQuery.data?.created_at ?? 'ready'}`
+              : 'new'
+          }
           form={form}
           layout="vertical"
           onFinish={(values) => saveMutation.mutate(values)}
-          initialValues={DEFAULT_FORM_VALUES}
+          initialValues={formInitialValues}
         >
           <SectionTitle title="基础信息" />
           <FormGrid style={{ marginBottom: 24 }}>
