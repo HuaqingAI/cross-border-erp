@@ -362,7 +362,6 @@ async def test_update_spu_syncs_inherited_fields_to_existing_skus(
             "level1_category_id": category_ids_b[0],
             "level2_category_id": category_ids_b[1],
             "level3_category_id": category_ids_b[2],
-            "supplier_name": "供应商同步后",
             "restricted_countries": ["JP", "KR"],
             "customer_warranty_months": 36,
         },
@@ -375,7 +374,7 @@ async def test_update_spu_syncs_inherited_fields_to_existing_skus(
     assert data["level1_category_id"] == category_ids_b[0]
     assert data["level2_category_id"] == category_ids_b[1]
     assert data["level3_category_id"] == category_ids_b[2]
-    assert data["supplier_name"] == "供应商同步后"
+    assert data["supplier_name"] == "供应商A"
     assert data["restricted_countries"] == ["JP", "KR"]
     assert data["customer_warranty_months"] == 36
 
