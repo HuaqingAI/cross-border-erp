@@ -2,11 +2,12 @@ import uuid
 
 import pytest
 from httpx import AsyncClient
-from sqlalchemy import Column, DateTime, Integer, MetaData, String, Table, insert, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import hash_password
 from app.models.product_category import ProductCategory
+from app.models.spu import SPU
 from app.models.user import User, UserRole
 
 
@@ -45,6 +46,21 @@ async def _create_category(
     if sort_order is not None:
         payload["sort_order"] = sort_order
     return await client.post("/api/v1/products/categories", json=payload)
+
+
+async def _create_category_tree(
+    client: AsyncClient,
+    *,
+    prefix: str,
+) -> tuple[int, int, int]:
+    root_id = (await _create_category(client, f"{prefix}-L1", "一级分类")).json()["id"]
+    second_id = (
+        await _create_category(client, f"{prefix}-L2", "二级分类", parent_id=root_id)
+    ).json()["id"]
+    third_id = (
+        await _create_category(client, f"{prefix}-L3", "三级分类", parent_id=second_id)
+    ).json()["id"]
+    return root_id, second_id, third_id
 
 
 @pytest.mark.asyncio
@@ -221,31 +237,26 @@ async def test_delete_leaf_category_soft_deletes_record(client: AsyncClient, db_
 
 @pytest.mark.asyncio
 async def test_cannot_delete_category_with_linked_spu(client: AsyncClient, db_session: AsyncSession):
-    metadata = MetaData()
-    spus = Table(
-        "spus",
-        metadata,
-        Column("id", Integer, primary_key=True, autoincrement=True),
-        Column("code", String(50), nullable=False),
-        Column("level3_category_id", Integer, nullable=False),
-        Column("deleted_at", DateTime, nullable=True),
-    )
-    connection = await db_session.connection()
-    await connection.run_sync(metadata.create_all)
-
     await _login_as_role(client, db_session, UserRole.PRODUCT_DEPT)
-    category_id = (await _create_category(client, "DEL004", "SPU关联分类")).json()["id"]
+    level1_id, level2_id, level3_id = await _create_category_tree(client, prefix="DEL004")
 
-    await db_session.execute(
-        insert(spus).values(
+    db_session.add(
+        SPU(
             code="SPU001",
-            level3_category_id=category_id,
-            deleted_at=None,
+            name="测试SPU",
+            level1_category_id=level1_id,
+            level2_category_id=level2_id,
+            level3_category_id=level3_id,
+            customer_warranty_months=12,
+            unit="台",
+            restricted_countries=[],
+            supplier_name="供应商A",
+            manufacturer_model="MODEL-1",
         )
     )
     await db_session.commit()
 
-    response = await client.delete(f"/api/v1/products/categories/{category_id}")
+    response = await client.delete(f"/api/v1/products/categories/{level3_id}")
 
     assert response.status_code == 400
     assert response.json()["message"] == "该分类下已有产品关联，无法删除"
@@ -256,27 +267,21 @@ async def test_cannot_delete_parent_category_when_descendant_has_linked_spu(
     client: AsyncClient,
     db_session: AsyncSession,
 ):
-    metadata = MetaData()
-    spus = Table(
-        "spus",
-        metadata,
-        Column("id", Integer, primary_key=True, autoincrement=True),
-        Column("code", String(50), nullable=False),
-        Column("level3_category_id", Integer, nullable=False),
-        Column("deleted_at", DateTime, nullable=True),
-    )
-    connection = await db_session.connection()
-    await connection.run_sync(metadata.create_all)
-
     await _login_as_role(client, db_session, UserRole.PRODUCT_DEPT)
-    root_id = (await _create_category(client, "DEL006", "父分类")).json()["id"]
-    child_id = (await _create_category(client, "DEL007", "子分类", parent_id=root_id)).json()["id"]
+    root_id, child_id, grandchild_id = await _create_category_tree(client, prefix="DEL006")
 
-    await db_session.execute(
-        insert(spus).values(
+    db_session.add(
+        SPU(
             code="SPU002",
-            level3_category_id=child_id,
-            deleted_at=None,
+            name="测试SPU-父子分类",
+            level1_category_id=root_id,
+            level2_category_id=child_id,
+            level3_category_id=grandchild_id,
+            customer_warranty_months=12,
+            unit="台",
+            restricted_countries=[],
+            supplier_name="供应商B",
+            manufacturer_model="MODEL-2",
         )
     )
     await db_session.commit()
