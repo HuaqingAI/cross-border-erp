@@ -151,9 +151,12 @@ function getErrorMessage(error: unknown): string {
   return '保存失败，请稍后重试'
 }
 
-interface SPUFormPageProps {
-  mode: 'create' | 'edit'
-  spuId: string | null
+function getCurrentPath(mode: 'create' | 'edit', spuId: string | null): string {
+  if (mode === 'edit' && spuId) {
+    return `/products/spus/${spuId}/edit`
+  }
+
+  return '/products/spus/new'
 }
 
 export default function SPUFormPage({ mode, spuId }: SPUFormPageProps) {
@@ -167,6 +170,8 @@ export default function SPUFormPage({ mode, spuId }: SPUFormPageProps) {
     const parsed = Number(spuId)
     return Number.isFinite(parsed) ? parsed : null
   }, [spuId])
+  const currentPath = getCurrentPath(mode, spuId)
+  const isInvalidEditTarget = mode === 'edit' && numericSpuId === null
   const isEditMode = mode === 'edit' && numericSpuId !== null
   const [form] = Form.useForm<SpuFormValues>()
   const categoriesQuery = useQuery({
@@ -189,12 +194,9 @@ export default function SPUFormPage({ mode, spuId }: SPUFormPageProps) {
     form.setFieldsValue(formInitialValues)
   }, [form, formInitialValues])
 
-  const closeCurrentTabToList = async () => {
-    await queryClient.invalidateQueries({ queryKey: ['spus-list'] })
+  const leaveCurrentTab = async () => {
     openTab({ key: '/products/spus', label: 'SPU管理', closable: true })
     navigate('/products/spus')
-    const currentPath =
-      mode === 'edit' && numericSpuId !== null ? `/products/spus/${numericSpuId}/edit` : '/products/spus/new'
     drop(currentPath)
     closeTab(currentPath)
   }
@@ -215,13 +217,41 @@ export default function SPUFormPage({ mode, spuId }: SPUFormPageProps) {
       if (savedSpu?.id) {
         queryClient.setQueryData(['spu-detail', savedSpu.id], savedSpu)
       }
-      await closeCurrentTabToList()
+      await leaveCurrentTab()
     },
     onError: (error) => {
       window.console.error(error)
-      window.alert(getErrorMessage(error))
+      message.error(getErrorMessage(error))
     },
   })
+
+  if (isInvalidEditTarget) {
+    return (
+      <div style={{ padding: 16 }}>
+        <div
+          style={{
+            minHeight: 320,
+            background: '#fff',
+            borderRadius: 4,
+            border: '1px solid #f0f0f0',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 12,
+            padding: 24,
+            textAlign: 'center',
+          }}
+        >
+          <div style={{ fontSize: 16, fontWeight: 600, color: 'rgba(0,0,0,0.88)' }}>SPU 标识无效</div>
+          <div style={{ color: 'rgba(0,0,0,0.45)' }}>当前编辑地址缺少有效的 SPU ID，请返回列表后重新进入。</div>
+          <Button type="primary" onClick={() => void leaveCurrentTab()}>
+            返回列表
+          </Button>
+        </div>
+      </div>
+    )
+  }
 
   if (isEditMode && detailQuery.isLoading) {
     return (
@@ -238,6 +268,37 @@ export default function SPUFormPage({ mode, spuId }: SPUFormPageProps) {
           }}
         >
           正在加载 SPU 数据...
+        </div>
+      </div>
+    )
+  }
+
+  if (isEditMode && (detailQuery.isError || !detailQuery.data)) {
+    return (
+      <div style={{ padding: 16 }}>
+        <div
+          style={{
+            minHeight: 320,
+            background: '#fff',
+            borderRadius: 4,
+            border: '1px solid #f0f0f0',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 12,
+            padding: 24,
+            textAlign: 'center',
+          }}
+        >
+          <div style={{ fontSize: 16, fontWeight: 600, color: 'rgba(0,0,0,0.88)' }}>SPU 数据加载失败</div>
+          <div style={{ color: 'rgba(0,0,0,0.45)' }}>请稍后重试，或返回列表后重新打开编辑页。</div>
+          <Space>
+            <Button onClick={() => void detailQuery.refetch()}>重试</Button>
+            <Button type="primary" onClick={() => void leaveCurrentTab()}>
+              返回列表
+            </Button>
+          </Space>
         </div>
       </div>
     )
@@ -319,8 +380,21 @@ export default function SPUFormPage({ mode, spuId }: SPUFormPageProps) {
           </FormGrid>
 
           <SectionTitle title="开票信息" />
-          <Form.List name="invoice_infos">
-            {(fields, { add, remove }) => (
+          <Form.List
+            name="invoice_infos"
+            rules={[
+              {
+                validator: async (_, value) => {
+                  if (Array.isArray(value) && value.length > 0) {
+                    return
+                  }
+
+                  throw new Error('至少保留一条开票信息')
+                },
+              },
+            ]}
+          >
+            {(fields, { add, remove }, { errors }) => (
               <>
                 <div style={{ marginBottom: 8 }}>
                   <Space>
@@ -416,13 +490,14 @@ export default function SPUFormPage({ mode, spuId }: SPUFormPageProps) {
                         </Form.Item>
                       </div>
                       <div style={{ padding: '14px 16px 8px' }}>
-                        <Button danger type="link" onClick={() => remove(field.name)}>
+                        <Button danger type="link" disabled={fields.length === 1} onClick={() => remove(field.name)}>
                           删除
                         </Button>
                       </div>
                     </div>
                   ))}
                 </div>
+                <Form.ErrorList errors={errors} />
               </>
             )}
           </Form.List>
@@ -430,7 +505,7 @@ export default function SPUFormPage({ mode, spuId }: SPUFormPageProps) {
 
       </div>
       <FixedActionBar
-        onCancel={() => navigate('/products/spus')}
+        onCancel={() => void leaveCurrentTab()}
         onSave={() => form.submit()}
         loading={saveMutation.isPending}
       />

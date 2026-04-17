@@ -85,6 +85,14 @@
   - `/products/spus/new` → `mode=\"create\"`
   - `/products/spus/:spuId/edit` → `mode=\"edit\" + spuId`
 
+- 当页面同时存在“列表 query”和“详情/编辑 query”时，更新成功后不要只刷新列表缓存  
+  推荐做法：
+  - 列表页：`invalidateQueries(['list-key'])`
+  - 详情页：优先 `setQueryData(['detail-key', id], savedEntity)`，必要时再 `invalidateQueries(['detail-key', id])`
+  目的：
+  - 避免列表展示新值，但再次进入编辑页仍回显旧缓存
+  - 保证“列表 / 详情 / 编辑”三个视图的数据一致性
+
 - 所有表单页尽量统一提供两个函数：
   - `toFormValues()`
   - `toPayload()`
