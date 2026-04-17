@@ -1,8 +1,9 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import type { ReactNode } from 'react'
 import { ConfigProvider } from 'antd'
 import zhCN from 'antd/locale/zh_CN'
 import { AliveScope, KeepAlive } from 'react-activation'
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import AppLayout from './components/layout/AppLayout'
 import ProtectedRoute from './features/auth/components/ProtectedRoute'
 import LoginPage from './features/auth/pages/LoginPage'
@@ -13,6 +14,8 @@ import DocumentListPage from './features/products/documents/pages/DocumentListPa
 import FAQListPage from './features/products/faqs/pages/FAQListPage'
 import ImportPage from './features/products/import/pages/ImportPage'
 import SKUListPage from './features/products/skus/pages/SKUListPage'
+import SPUDetailPage from './features/products/spus/pages/SPUDetailPage'
+import SPUFormPage from './features/products/spus/pages/SPUFormPage'
 import SPUListPage from './features/products/spus/pages/SPUListPage'
 import PriceListPage from './features/prices/pages/PriceListPage'
 
@@ -47,6 +50,15 @@ const antdTheme = {
   },
 }
 
+function RoutedKeepAlive({ children }: { children: ReactNode }) {
+  const location = useLocation()
+  return (
+    <KeepAlive name={location.pathname} id={location.pathname}>
+      {children}
+    </KeepAlive>
+  )
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -72,6 +84,30 @@ function App() {
                       <KeepAlive name="/products/spus" id="/products/spus">
                         <SPUListPage />
                       </KeepAlive>
+                    }
+                  />
+                  <Route
+                    path="/products/spus/new"
+                    element={
+                      <RoutedKeepAlive>
+                        <SPUFormPage />
+                      </RoutedKeepAlive>
+                    }
+                  />
+                  <Route
+                    path="/products/spus/:spuId"
+                    element={
+                      <RoutedKeepAlive>
+                        <SPUDetailPage />
+                      </RoutedKeepAlive>
+                    }
+                  />
+                  <Route
+                    path="/products/spus/:spuId/edit"
+                    element={
+                      <RoutedKeepAlive>
+                        <SPUFormPage />
+                      </RoutedKeepAlive>
                     }
                   />
                   <Route

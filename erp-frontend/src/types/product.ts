@@ -25,11 +25,43 @@ export interface CategorySortPayload {
   sort_order: number
 }
 
-export interface Spu {
+export interface PaginatedResult<T> {
+  items: T[]
+  total: number
+  page: number
+  page_size: number
+}
+
+export interface SpuListItem {
   id: number
+  code: string
   name: string
-  category_id: number
-  status: string
+  level1_category_id: number
+  level2_category_id: number
+  level3_category_id: number
+  supplier_name: string
+  customer_warranty_months: number
+  unit: string
+  manufacturer_model: string
+  created_at: string
+  purchase_price?: string | null
+  sku_count?: number | null
+}
+
+export interface SpuListQuery {
+  page: number
+  page_size: number
+  level1_category_id?: number
+  level2_category_id?: number
+  level3_category_id?: number
+  supplier_name?: string
+  keyword?: string
+}
+
+export interface Spu extends SpuListItem {
+  purchase_warranty_months?: number | null
+  supplier_warranty_notes?: string | null
+  restricted_countries?: string[]
 }
 
 export interface Sku {
