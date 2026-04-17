@@ -21,16 +21,29 @@ export default function AppLayout() {
   }, [location.pathname, openTab])
 
   return (
-    <Layout style={{ minHeight: '100vh' }}>
+    <Layout
+      style={{
+        height: '100vh',
+        overflow: 'hidden',
+      }}
+    >
       <SideMenu />
-      <Layout style={{ display: 'flex', flexDirection: 'column' }}>
+      <Layout
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          minWidth: 0,
+          overflow: 'hidden',
+        }}
+      >
         <CacheTabs />
         <Content
           style={{
             flex: 1,
-            margin: '0 16px 16px',
+            margin: 0,
             overflow: 'auto',
             background: '#f5f5f5',
+            minHeight: 0,
           }}
         >
           <Outlet />

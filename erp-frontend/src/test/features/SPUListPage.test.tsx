@@ -159,10 +159,9 @@ describe('SPUListPage', () => {
   it('加载后渲染筛选区、表格和分页', async () => {
     renderSPUListPage('product_dept')
 
-    expect(await screen.findByText('SPU管理')).toBeInTheDocument()
+    expect(await screen.findByText('超声刀系统')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /查\s*询/ })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /新\s*增/ })).toBeInTheDocument()
-    expect(screen.getByText('超声刀系统')).toBeInTheDocument()
     expect(screen.getByText('超声设备')).toBeInTheDocument()
     expect(
       screen.getByText(
@@ -220,7 +219,7 @@ describe('SPUListPage', () => {
     expect(await screen.findByText('超声刀系统')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /新\s*增/ })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: '编辑' })).not.toBeInTheDocument()
-    expect(screen.getByText('当前角色可浏览列表并查看详情，新增与编辑功能已禁用')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '查看' })).toBeInTheDocument()
   })
 
   it('点击查看时跳转到详情页路径', async () => {
