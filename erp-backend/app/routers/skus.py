@@ -1,12 +1,13 @@
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.permissions import require_product_or_admin
+from app.core.permissions import require_customs_info_editor, require_product_or_admin
 from app.db.session import get_db
 from app.deps import get_current_user
 from app.models.user import User
 from app.schemas.sku import (
     SKUCreate,
+    SKUCustomsInfoUpdate,
     SKUDetail,
     SKUListResponse,
     SKUProductStatus,
@@ -82,3 +83,14 @@ async def update_sku(
 ):
     service = SKUService(db)
     return await service.update_sku(sku_id, data, current_user)
+
+
+@router.patch("/{sku_id}/customs-info", response_model=SKUDetail)
+async def update_sku_customs_info(
+    sku_id: int,
+    data: SKUCustomsInfoUpdate,
+    current_user: User = Depends(require_customs_info_editor),
+    db: AsyncSession = Depends(get_db),
+):
+    service = SKUService(db)
+    return await service.update_customs_info(sku_id, data, current_user)

@@ -53,6 +53,21 @@ require_product_or_admin = require_role(UserRole.PRODUCT_DEPT, UserRole.ADMIN)
 # SKU 报关信息写操作：商务部 + 管理员（FR12）
 require_business_or_admin = require_role(UserRole.BUSINESS_DEPT, UserRole.ADMIN)
 
+
+async def require_customs_info_editor(
+    current_user: User = Depends(get_current_user),
+) -> User:
+    """
+    SKU 报关信息专属写权限：仅商务部、管理员可编辑。
+    与通用 RBAC 403 区分，返回更明确的业务错误消息（FR12）。
+    """
+    if current_user.role not in {UserRole.BUSINESS_DEPT, UserRole.ADMIN}:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="报关信息仅商务部可编辑",
+        )
+    return current_user
+
 # 销售价格管理写操作：财务部 + 管理员（FR24-FR27）
 require_finance_or_admin = require_role(UserRole.FINANCE_DEPT, UserRole.ADMIN)
 

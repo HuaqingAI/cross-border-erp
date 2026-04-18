@@ -8,6 +8,7 @@ from app.repositories.skus import SKURepository
 from app.repositories.spus import SPURepository
 from app.schemas.sku import (
     SKUCreate,
+    SKUCustomsInfoUpdate,
     SKUDetail,
     SKUPackageDetailPayload,
     SKUPackageDetailResponse,
@@ -155,6 +156,30 @@ class SKUService:
         if data.package_details is not None:
             await self._replace_package_details(sku.id, data.package_details)
 
+        return await self.get_sku(sku.id, current_user)
+
+    async def update_customs_info(
+        self,
+        sku_id: int,
+        data: SKUCustomsInfoUpdate,
+        current_user: User,
+    ):
+        sku = await self.repo.get_with_related(sku_id)
+        if sku is None:
+            raise BusinessError("SKU不存在", code="NOT_FOUND", status_code=404)
+
+        if "customs_hscode" in data.model_fields_set:
+            sku.customs_hscode = data.customs_hscode
+        if "customs_supervision_condition" in data.model_fields_set:
+            sku.customs_supervision_condition = data.customs_supervision_condition
+        if "customs_declaration_elements" in data.model_fields_set:
+            sku.customs_declaration_elements = data.customs_declaration_elements
+        if "customs_refund_tax_rate" in data.model_fields_set:
+            sku.customs_refund_tax_rate = data.customs_refund_tax_rate
+        if "customs_info_ready" in data.model_fields_set and data.customs_info_ready is not None:
+            sku.customs_info_ready = data.customs_info_ready
+
+        await self.repo.save(sku)
         return await self.get_sku(sku.id, current_user)
 
     async def _ensure_unique_code(self, code: str) -> None:

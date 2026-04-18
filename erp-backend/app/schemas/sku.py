@@ -82,6 +82,16 @@ class SKUUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
+class SKUCustomsInfoUpdate(BaseModel):
+    customs_hscode: str | None = Field(default=None, max_length=50)
+    customs_supervision_condition: str | None = Field(default=None, max_length=255)
+    customs_declaration_elements: str | None = Field(default=None, max_length=1000)
+    customs_refund_tax_rate: Decimal | None = Field(default=None, ge=0, le=100)
+    customs_info_ready: bool | None = None
+
+    model_config = ConfigDict(extra="forbid")
+
+
 class SKUPackageDetailResponse(BaseModel):
     id: int
     net_weight_kg: Decimal | None = None

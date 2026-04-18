@@ -488,6 +488,139 @@ async def test_business_user_can_read_but_cannot_write_sku(
 
 
 @pytest.mark.asyncio
+async def test_business_user_can_update_customs_info(
+    client: AsyncClient,
+    db_session: AsyncSession,
+):
+    await _login_as_role(client, db_session, UserRole.PRODUCT_DEPT)
+    spu = await _create_spu(
+        client,
+        code="SPU-SKU-006B",
+        name="报关平台",
+        supplier_name="供应商己",
+        restricted_countries=["US"],
+    )
+    create_response = await client.post(
+        "/api/v1/skus",
+        json=_sku_payload(
+            spu_id=spu["id"],
+            code="SKU006B",
+            name_zh="报关平台标准版",
+            name_en="Customs Standard",
+        ),
+    )
+    sku_id = create_response.json()["id"]
+
+    await _login_as_role(client, db_session, UserRole.BUSINESS_DEPT)
+    update_response = await client.patch(
+        f"/api/v1/skus/{sku_id}/customs-info",
+        json={
+            "customs_hscode": "90181234",
+            "customs_supervision_condition": "A",
+            "customs_declaration_elements": "医用超声设备",
+            "customs_refund_tax_rate": "13.50",
+            "customs_info_ready": True,
+        },
+    )
+
+    assert update_response.status_code == 200
+    data = update_response.json()
+    assert data["customs_hscode"] == "90181234"
+    assert data["customs_supervision_condition"] == "A"
+    assert data["customs_declaration_elements"] == "医用超声设备"
+    assert data["customs_refund_tax_rate"] == "13.50"
+    assert data["customs_info_ready"] is True
+
+
+@pytest.mark.asyncio
+async def test_admin_can_update_customs_info(
+    client: AsyncClient,
+    db_session: AsyncSession,
+):
+    await _login_as_role(client, db_session, UserRole.PRODUCT_DEPT)
+    spu = await _create_spu(
+        client,
+        code="SPU-SKU-006C",
+        name="报关平台管理员",
+        supplier_name="供应商庚",
+        restricted_countries=[],
+    )
+    create_response = await client.post(
+        "/api/v1/skus",
+        json=_sku_payload(
+            spu_id=spu["id"],
+            code="SKU006C",
+            name_zh="报关平台管理员版",
+            name_en="Admin Customs",
+        ),
+    )
+    sku_id = create_response.json()["id"]
+
+    await _login_as_role(client, db_session, UserRole.ADMIN)
+    update_response = await client.patch(
+        f"/api/v1/skus/{sku_id}/customs-info",
+        json={"customs_info_ready": True},
+    )
+
+    assert update_response.status_code == 200
+    assert update_response.json()["customs_info_ready"] is True
+
+
+@pytest.mark.asyncio
+async def test_product_user_cannot_update_customs_info_but_can_read_after_business_update(
+    client: AsyncClient,
+    db_session: AsyncSession,
+):
+    await _login_as_role(client, db_session, UserRole.PRODUCT_DEPT)
+    spu = await _create_spu(
+        client,
+        code="SPU-SKU-006D",
+        name="报关平台只读",
+        supplier_name="供应商辛",
+        restricted_countries=["DE"],
+    )
+    create_response = await client.post(
+        "/api/v1/skus",
+        json=_sku_payload(
+            spu_id=spu["id"],
+            code="SKU006D",
+            name_zh="报关平台只读版",
+            name_en="Readonly Customs",
+        ),
+    )
+    sku_id = create_response.json()["id"]
+
+    await _login_as_role(client, db_session, UserRole.BUSINESS_DEPT)
+    business_update = await client.patch(
+        f"/api/v1/skus/{sku_id}/customs-info",
+        json={
+            "customs_hscode": "90221490",
+            "customs_supervision_condition": "B",
+            "customs_declaration_elements": "X光设备",
+            "customs_refund_tax_rate": "9.00",
+            "customs_info_ready": True,
+        },
+    )
+    assert business_update.status_code == 200
+
+    await _login_as_role(client, db_session, UserRole.PRODUCT_DEPT)
+    forbidden_response = await client.patch(
+        f"/api/v1/skus/{sku_id}/customs-info",
+        json={"customs_hscode": "00000000"},
+    )
+    detail_response = await client.get(f"/api/v1/skus/{sku_id}")
+
+    assert forbidden_response.status_code == 403
+    assert forbidden_response.json()["detail"] == "报关信息仅商务部可编辑"
+    assert detail_response.status_code == 200
+    assert detail_response.json()["customs_hscode"] == "90221490"
+    assert detail_response.json()["customs_supervision_condition"] == "B"
+    assert detail_response.json()["customs_declaration_elements"] == "X光设备"
+    assert detail_response.json()["customs_refund_tax_rate"] == "9.00"
+    assert detail_response.json()["customs_info_ready"] is True
+
+
+@pytest.mark.asyncio
 async def test_list_supports_spu_and_multi_filters(
     client: AsyncClient,
     db_session: AsyncSession,
