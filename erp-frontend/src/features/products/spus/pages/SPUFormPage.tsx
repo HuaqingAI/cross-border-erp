@@ -5,7 +5,7 @@ import { useAliveController } from 'react-activation'
 import { useNavigate } from 'react-router-dom'
 import { categoriesApi } from '../../../../api/categories'
 import { spusApi } from '../../../../api/spus'
-import { FixedActionBar, SectionTitle } from '../../../../components/common'
+import { FixedActionBar, FormSectionCard } from '../../../../components/common'
 import FormGrid from '../../../../components/form/FormGrid'
 import type { DefaultOptionType } from 'antd/es/cascader'
 import { useUIStore } from '../../../../stores/uiStore'
@@ -305,28 +305,34 @@ export default function SPUFormPage({ mode, spuId }: SPUFormPageProps) {
   }
 
   return (
-    <div style={{ padding: 16, minHeight: 360, paddingBottom: 96 }}>
-      <div
+    <div
+      style={{
+        padding: 16,
+        minHeight: 360,
+        paddingBottom: 96,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 16,
+      }}
+    >
+      <Form
+        key={
+          isEditMode
+            ? `edit-${numericSpuId}-${detailQuery.data?.updated_at ?? detailQuery.data?.created_at ?? 'ready'}`
+            : 'new'
+        }
+        form={form}
+        layout="vertical"
+        onFinish={(values) => saveMutation.mutate(values)}
+        initialValues={formInitialValues}
         style={{
-          background: '#fff',
-          borderRadius: 4,
-          border: '1px solid #f0f0f0',
-          padding: 16,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 16,
         }}
       >
-        <Form
-          key={
-            isEditMode
-              ? `edit-${numericSpuId}-${detailQuery.data?.updated_at ?? detailQuery.data?.created_at ?? 'ready'}`
-              : 'new'
-          }
-          form={form}
-          layout="vertical"
-          onFinish={(values) => saveMutation.mutate(values)}
-          initialValues={formInitialValues}
-        >
-          <SectionTitle title="基础信息" />
-          <FormGrid style={{ marginBottom: 24 }}>
+        <FormSectionCard title="基础信息">
+          <FormGrid rowGap={16} columnGap={24} itemStyle={{ marginBottom: 0 }}>
             <Form.Item label="SPU编码" name="code" rules={[{ required: true, message: '请输入SPU编码' }]}>
               <Input placeholder="请输入SPU编码" disabled={isEditMode} />
             </Form.Item>
@@ -355,9 +361,10 @@ export default function SPUFormPage({ mode, spuId }: SPUFormPageProps) {
               />
             </Form.Item>
           </FormGrid>
+        </FormSectionCard>
 
-          <SectionTitle title="采购信息" />
-          <FormGrid style={{ marginBottom: 24 }}>
+        <FormSectionCard title="采购信息">
+          <FormGrid rowGap={16} columnGap={24} itemStyle={{ marginBottom: 0 }}>
             <Form.Item label="供应商" name="supplier_name" rules={[{ required: true, message: '请输入供应商' }]}>
               <Input placeholder="请输入供应商" />
             </Form.Item>
@@ -378,8 +385,9 @@ export default function SPUFormPage({ mode, spuId }: SPUFormPageProps) {
               <Input.TextArea rows={4} placeholder="请输入供应商质保说明" />
             </Form.Item>
           </FormGrid>
+        </FormSectionCard>
 
-          <SectionTitle title="开票信息" />
+        <FormSectionCard title="开票信息">
           <Form.List
             name="invoice_infos"
             rules={[
@@ -396,7 +404,7 @@ export default function SPUFormPage({ mode, spuId }: SPUFormPageProps) {
           >
             {(fields, { add, remove }, { errors }) => (
               <>
-                <div style={{ marginBottom: 8 }}>
+                <div style={{ marginBottom: 16 }}>
                   <Space>
                     <Button
                       htmlType="button"
@@ -501,9 +509,13 @@ export default function SPUFormPage({ mode, spuId }: SPUFormPageProps) {
               </>
             )}
           </Form.List>
-        </Form>
-
-      </div>
+        </FormSectionCard>
+      </Form>
+      <div
+        style={{
+          flex: 1,
+        }}
+      />
       <FixedActionBar
         onCancel={() => void leaveCurrentTab()}
         onSave={() => form.submit()}

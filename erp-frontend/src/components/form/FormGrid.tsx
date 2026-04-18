@@ -1,17 +1,24 @@
 import { Grid } from 'antd'
+import { Children, cloneElement, isValidElement } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 
 interface FormGridProps {
   children: ReactNode
   gap?: number
+  rowGap?: number
+  columnGap?: number
   minColumnWidth?: number
+  itemStyle?: CSSProperties
   style?: CSSProperties
 }
 
 export default function FormGrid({
   children,
   gap = 16,
+  rowGap,
+  columnGap,
   minColumnWidth = 280,
+  itemStyle,
   style,
 }: FormGridProps) {
   const screens = Grid.useBreakpoint()
@@ -28,12 +35,29 @@ export default function FormGrid({
       style={{
         display: 'grid',
         gridTemplateColumns: `repeat(${columns}, minmax(${minColumnWidth}px, 1fr))`,
-        gap,
+        columnGap: columnGap ?? gap,
+        rowGap: rowGap ?? gap,
         alignItems: 'start',
         ...style,
       }}
     >
-      {children}
+      {Children.map(children, (child) => {
+        if (!itemStyle || !isValidElement(child)) {
+          return child
+        }
+
+        const currentStyle =
+          typeof child.props === 'object' && child.props !== null && 'style' in child.props
+            ? (child.props.style as CSSProperties | undefined)
+            : undefined
+
+        return cloneElement(child, {
+          style: {
+            ...currentStyle,
+            ...itemStyle,
+          },
+        })
+      })}
     </div>
   )
 }

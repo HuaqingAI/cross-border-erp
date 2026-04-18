@@ -836,6 +836,16 @@ flowchart TD
 | **实现** | AntD `Tabs` + `react-activation` KeepAlive 集成 |
 | **无障碍** | `role="tablist"`，支持方向键切换页签 |
 
+#### 7. FormSectionCard（新增/编辑页分区卡片）
+
+| 属性 | 说明 |
+|------|------|
+| **用途** | 承载新增/编辑页的一级信息块（基础信息、采购信息、开票信息等） |
+| **内容** | 卡片头部标题 + 内容区 |
+| **样式** | 白色背景、圆角 4px、1px `#f0f0f0` 边框、内边距 `16px` |
+| **间距** | 多个卡片之间默认垂直间距 `16px` |
+| **实现** | 内部可组合 `SectionTitle`、`FormGrid`、`Form.List` 子表 |
+
 ### Component Implementation Strategy
 
 - 所有自定义组件基于 Ant Design 5.x Design Token 构建，确保与系统主题一致
@@ -848,7 +858,7 @@ flowchart TD
 | 阶段 | 组件 | 优先级原因 |
 |------|------|------------|
 | **Phase 1（核心骨架）** | CacheTabs、SectionTitle、FixedActionBar、FilterCard | 所有页面都依赖的布局骨架组件 |
-| **Phase 2（业务组件）** | InheritedField、PaginationBar | SKU 表单和列表页核心业务组件 |
+| **Phase 2（业务组件）** | InheritedField、PaginationBar、FormSectionCard | 新增/编辑页统一分区容器与列表页核心业务组件 |
 | **Phase 3（增强封装）** | EditableTable（基于 AntD Table + Form.List） | 包装明细、区域价格的复用封装 |
 
 ## UX Consistency Patterns
@@ -891,6 +901,16 @@ flowchart TD
 | 标签位置 | 顶部对齐（`layout="vertical"`），标签 12px 灰色 |
 | 必填标记 | 红色 `*` 在标签前 |
 | 分区分隔 | `SectionTitle` 组件，`grid-column: 1 / -1` 占满整行 |
+
+**新增/编辑页卡片规则：**
+
+| 规则 | 说明 |
+|------|------|
+| 一级信息块 | 默认拆为独立白色卡片，不在一个连续大白底里堆多个分区 |
+| 卡片之间间距 | `16px` |
+| 卡片内边距 | `16px` |
+| 卡片内表单节奏 | `FormGrid columnGap = 24px`、`rowGap = 16px` |
+| 普通字段底部留白 | 不再叠加大于 `16px` 的额外 `Form.Item` 底部间距 |
 
 **校验规则：**
 
