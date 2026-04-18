@@ -13,6 +13,8 @@ import CertificateListPage from './features/products/certificates/pages/Certific
 import DocumentListPage from './features/products/documents/pages/DocumentListPage'
 import FAQListPage from './features/products/faqs/pages/FAQListPage'
 import ImportPage from './features/products/import/pages/ImportPage'
+import SKUDetailPage from './features/products/skus/pages/SKUDetailPage'
+import SKUFormPage from './features/products/skus/pages/SKUFormPage'
 import SKUListPage from './features/products/skus/pages/SKUListPage'
 import SPUDetailPage from './features/products/spus/pages/SPUDetailPage'
 import SPUFormPage from './features/products/spus/pages/SPUFormPage'
@@ -79,6 +81,26 @@ function RoutedSPUDetailPage() {
   )
 }
 
+function RoutedSKUFormPage({ mode }: { mode: 'create' | 'edit' }) {
+  const { skuId } = useParams()
+
+  return (
+    <RoutedKeepAlive>
+      <SKUFormPage mode={mode} skuId={skuId ?? null} />
+    </RoutedKeepAlive>
+  )
+}
+
+function RoutedSKUDetailPage() {
+  const { skuId } = useParams()
+
+  return (
+    <RoutedKeepAlive>
+      <SKUDetailPage skuId={skuId ?? null} />
+    </RoutedKeepAlive>
+  )
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -125,6 +147,18 @@ function App() {
                         <SKUListPage />
                       </KeepAlive>
                     }
+                  />
+                  <Route
+                    path="/products/skus/new"
+                    element={<RoutedSKUFormPage mode="create" />}
+                  />
+                  <Route
+                    path="/products/skus/:skuId"
+                    element={<RoutedSKUDetailPage />}
+                  />
+                  <Route
+                    path="/products/skus/:skuId/edit"
+                    element={<RoutedSKUFormPage mode="edit" />}
                   />
                   <Route
                     path="/products/certificates"
