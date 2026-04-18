@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     MINIO_BUCKET: str = "erp-files"
     MINIO_SKU_IMAGE_BUCKET: str = "erp-sku-images"
     MINIO_SECURE: bool = False
+    MINIO_REGION: str = "us-east-1"
     MINIO_PUBLIC_ENDPOINT: str = "http://localhost:9000"
 
     # 应用
