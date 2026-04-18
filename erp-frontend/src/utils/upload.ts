@@ -1,13 +1,35 @@
-// 文件上传工具函数占位
-// SKU 图片上传 Story 将实现完整上传逻辑
+import { filesApi } from '../api/files'
 
 export interface UploadResult {
   url: string
   filename: string
+  fileKey: string
 }
 
-export async function uploadFile(_file: File): Promise<UploadResult> {
-  throw new Error('文件上传功能将在 SKU 图片上传 Story 中实现')
+export async function uploadFile(file: File): Promise<UploadResult> {
+  const presigned = await filesApi.createPresignedUrl({
+    filename: file.name,
+    content_type: file.type || 'application/octet-stream',
+    folder: 'sku-images',
+  })
+
+  const uploadResponse = await fetch(presigned.upload_url, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': file.type || 'application/octet-stream',
+    },
+    body: file,
+  })
+
+  if (!uploadResponse.ok) {
+    throw new Error('文件上传失败')
+  }
+
+  return {
+    url: presigned.file_url,
+    filename: file.name,
+    fileKey: presigned.file_key,
+  }
 }
 
 export function getFileExtension(filename: string): string {

@@ -6,7 +6,7 @@ from sqlalchemy import func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models.sku import SKU, SKUPackageDetail
+from app.models.sku import SKU, SKUPackageDetail, SKUImage
 from app.models.spu import SPU
 from app.repositories.base_repository import BaseRepository
 
@@ -119,6 +119,38 @@ class SKURepository(BaseRepository[SKU]):
         for package_detail in package_details:
             package_detail.deleted_at = now
             self.db.add(package_detail)
+        await self.db.flush()
+
+    async def list_active_images(self, sku_id: int) -> list[SKUImage]:
+        result = await self.db.execute(
+            select(SKUImage)
+            .where(
+                SKUImage.sku_id == sku_id,
+                SKUImage.deleted_at.is_(None),
+            )
+            .order_by(SKUImage.sort_order, SKUImage.id)
+        )
+        return list(result.scalars().all())
+
+    async def save_image(self, image: SKUImage) -> SKUImage:
+        self.db.add(image)
+        await self.db.flush()
+        await self.db.refresh(image)
+        return image
+
+    async def get_active_image(self, sku_id: int, image_id: int) -> SKUImage | None:
+        result = await self.db.execute(
+            select(SKUImage).where(
+                SKUImage.id == image_id,
+                SKUImage.sku_id == sku_id,
+                SKUImage.deleted_at.is_(None),
+            )
+        )
+        return result.scalar_one_or_none()
+
+    async def soft_delete_image(self, image: SKUImage) -> None:
+        image.deleted_at = datetime.now(timezone.utc)
+        self.db.add(image)
         await self.db.flush()
 
     async def sync_inherited_fields_from_spu(self, spu: SPU) -> None:

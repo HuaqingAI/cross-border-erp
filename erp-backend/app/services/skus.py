@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+from app.core.config import settings
 from app.core.exceptions import BusinessError
-from app.models.sku import SKU, SKUPackageDetail
+from app.core.storage import delete_file, get_file_url
+from app.models.sku import SKU, SKUPackageDetail, SKUImage
 from app.models.spu import SPU
 from app.models.user import User
 from app.repositories.skus import SKURepository
@@ -10,6 +12,8 @@ from app.schemas.sku import (
     SKUCreate,
     SKUCustomsInfoUpdate,
     SKUDetail,
+    SKUImageCreate,
+    SKUImageResponse,
     SKUPackageDetailPayload,
     SKUPackageDetailResponse,
     SKUListItem,
@@ -63,7 +67,8 @@ class SKUService:
         if sku is None:
             raise BusinessError("SKU不存在", code="NOT_FOUND", status_code=404)
         package_details = await self.repo.list_active_package_details(sku_id)
-        return self._serialize_detail(sku, package_details)
+        images = await self.repo.list_active_images(sku_id)
+        return self._serialize_detail(sku, package_details, images)
 
     async def list_skus(
         self,
@@ -182,6 +187,56 @@ class SKUService:
         await self.repo.save(sku)
         return await self.get_sku(sku.id, current_user)
 
+    async def add_image(
+        self,
+        sku_id: int,
+        data: SKUImageCreate,
+        current_user: User,
+    ):
+        sku = await self.repo.get_with_related(sku_id)
+        if sku is None:
+            raise BusinessError("SKU不存在", code="NOT_FOUND", status_code=404)
+
+        if not data.object_key.startswith("sku-images/"):
+            raise BusinessError("SKU图片对象键非法")
+
+        expected_file_url = get_file_url(
+            data.object_key,
+            bucket_name=settings.MINIO_SKU_IMAGE_BUCKET,
+        )
+        if data.file_url != expected_file_url:
+            raise BusinessError("SKU图片URL与对象键不匹配")
+
+        images = await self.repo.list_active_images(sku_id)
+        image = SKUImage(
+            sku_id=sku_id,
+            object_key=data.object_key,
+            file_url=expected_file_url,
+            filename=data.filename,
+            content_type=data.content_type,
+            sort_order=data.sort_order if data.sort_order is not None else len(images),
+        )
+        await self.repo.save_image(image)
+        return await self.get_sku(sku.id, current_user)
+
+    async def delete_image(
+        self,
+        sku_id: int,
+        image_id: int,
+        current_user: User,
+    ):
+        sku = await self.repo.get_with_related(sku_id)
+        if sku is None:
+            raise BusinessError("SKU不存在", code="NOT_FOUND", status_code=404)
+
+        image = await self.repo.get_active_image(sku_id, image_id)
+        if image is None:
+            raise BusinessError("SKU图片不存在", code="NOT_FOUND", status_code=404)
+
+        await self.repo.soft_delete_image(image)
+        self._enqueue_post_commit_delete(image.object_key)
+        return await self.get_sku(sku.id, current_user)
+
     async def _ensure_unique_code(self, code: str) -> None:
         if await self.repo.get_by_code(code):
             raise BusinessError("SKU编码已存在")
@@ -199,6 +254,14 @@ class SKUService:
         sku.supplier_name = spu.supplier_name
         sku.restricted_countries = list(spu.restricted_countries or [])
         sku.customer_warranty_months = spu.customer_warranty_months
+
+    def _enqueue_post_commit_delete(self, object_key: str) -> None:
+        post_commit_hooks = self.db.info.setdefault("post_commit_hooks", [])
+
+        async def _delete() -> None:
+            await delete_file(object_key)
+
+        post_commit_hooks.append(_delete)
 
     async def _replace_package_details(
         self,
@@ -250,6 +313,7 @@ class SKUService:
         self,
         sku: SKU,
         package_details: list[SKUPackageDetail],
+        images: list[SKUImage],
     ):
         if sku.spu is None:
             raise BusinessError("SKU关联的SPU不存在", code="NOT_FOUND", status_code=404)
@@ -286,6 +350,7 @@ class SKUService:
                     SKUPackageDetailResponse.model_validate(detail)
                     for detail in package_details
                 ],
+                "images": [SKUImageResponse.model_validate(image) for image in images],
                 "customs_hscode": sku.customs_hscode,
                 "customs_supervision_condition": sku.customs_supervision_condition,
                 "customs_declaration_elements": sku.customs_declaration_elements,

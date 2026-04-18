@@ -17,6 +17,9 @@ class Settings(BaseSettings):
     MINIO_ACCESS_KEY: str = "minioadmin"
     MINIO_SECRET_KEY: str = "minioadmin"
     MINIO_BUCKET: str = "erp-files"
+    MINIO_SKU_IMAGE_BUCKET: str = "erp-sku-images"
+    MINIO_SECURE: bool = False
+    MINIO_PUBLIC_ENDPOINT: str = "http://localhost:9000"
 
     # 应用
     DEBUG: bool = True

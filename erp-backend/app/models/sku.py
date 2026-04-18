@@ -74,6 +74,15 @@ class SKU(BaseModel):
         order_by=lambda: (SKUPackageDetail.sort_order, SKUPackageDetail.id),
         back_populates="sku",
     )
+    images: Mapped[list[SKUImage]] = relationship(
+        "SKUImage",
+        primaryjoin=lambda: and_(
+            SKU.id == SKUImage.sku_id,
+            SKUImage.deleted_at.is_(None),
+        ),
+        order_by=lambda: (SKUImage.sort_order, SKUImage.id),
+        back_populates="sku",
+    )
 
 
 class SKUPackageDetail(BaseModel):
@@ -89,3 +98,16 @@ class SKUPackageDetail(BaseModel):
     sort_order: Mapped[int] = mapped_column(nullable=False, default=0, index=True)
 
     sku: Mapped[SKU] = relationship("SKU", back_populates="package_details")
+
+
+class SKUImage(BaseModel):
+    __tablename__ = "sku_images"
+
+    sku_id: Mapped[int] = mapped_column(ForeignKey("skus.id"), nullable=False, index=True)
+    object_key: Mapped[str] = mapped_column(String(255), nullable=False, unique=True, index=True)
+    file_url: Mapped[str] = mapped_column(String(500), nullable=False)
+    filename: Mapped[str] = mapped_column(String(255), nullable=False)
+    content_type: Mapped[str] = mapped_column(String(100), nullable=False)
+    sort_order: Mapped[int] = mapped_column(nullable=False, default=0, index=True)
+
+    sku: Mapped[SKU] = relationship("SKU", back_populates="images")

@@ -621,6 +621,145 @@ async def test_product_user_cannot_update_customs_info_but_can_read_after_busine
 
 
 @pytest.mark.asyncio
+async def test_product_user_can_add_images_and_detail_returns_image_list(
+    client: AsyncClient,
+    db_session: AsyncSession,
+):
+    await _login_as_role(client, db_session, UserRole.PRODUCT_DEPT)
+    spu = await _create_spu(
+        client,
+        code="SPU-SKU-008",
+        name="图片平台",
+        supplier_name="供应商壬",
+        restricted_countries=[],
+    )
+    create_response = await client.post(
+        "/api/v1/skus",
+        json=_sku_payload(
+            spu_id=spu["id"],
+            code="SKU008",
+            name_zh="图片平台标准版",
+            name_en="Image Standard",
+        ),
+    )
+    sku_id = create_response.json()["id"]
+
+    first_response = await client.post(
+        f"/api/v1/skus/{sku_id}/images",
+        json={
+            "object_key": "sku-images/test-1.png",
+            "file_url": "http://localhost:9000/erp-sku-images/sku-images/test-1.png",
+            "filename": "test-1.png",
+            "content_type": "image/png",
+        },
+    )
+    second_response = await client.post(
+        f"/api/v1/skus/{sku_id}/images",
+        json={
+            "object_key": "sku-images/test-2.png",
+            "file_url": "http://localhost:9000/erp-sku-images/sku-images/test-2.png",
+            "filename": "test-2.png",
+            "content_type": "image/png",
+        },
+    )
+
+    assert first_response.status_code == 201
+    assert second_response.status_code == 201
+
+    detail_response = await client.get(f"/api/v1/skus/{sku_id}")
+    assert detail_response.status_code == 200
+    images = detail_response.json()["images"]
+    assert len(images) == 2
+    assert images[0]["file_url"].endswith("test-1.png")
+    assert images[1]["file_url"].endswith("test-2.png")
+
+
+@pytest.mark.asyncio
+async def test_product_user_can_delete_single_image(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    await _login_as_role(client, db_session, UserRole.PRODUCT_DEPT)
+    spu = await _create_spu(
+        client,
+        code="SPU-SKU-009",
+        name="图片删除平台",
+        supplier_name="供应商癸",
+        restricted_countries=["US"],
+    )
+    create_response = await client.post(
+        "/api/v1/skus",
+        json=_sku_payload(
+            spu_id=spu["id"],
+            code="SKU009",
+            name_zh="图片删除标准版",
+            name_en="Delete Image Standard",
+        ),
+    )
+    sku_id = create_response.json()["id"]
+
+    add_response = await client.post(
+        f"/api/v1/skus/{sku_id}/images",
+        json={
+            "object_key": "sku-images/delete-me.png",
+            "file_url": "http://localhost:9000/erp-sku-images/sku-images/delete-me.png",
+            "filename": "delete-me.png",
+            "content_type": "image/png",
+        },
+    )
+    image_id = add_response.json()["images"][0]["id"]
+
+    async def fake_delete_file(object_name: str):
+        assert object_name == "sku-images/delete-me.png"
+
+    monkeypatch.setattr("app.services.skus.delete_file", fake_delete_file)
+
+    delete_response = await client.delete(f"/api/v1/skus/{sku_id}/images/{image_id}")
+
+    assert delete_response.status_code == 200
+    assert delete_response.json()["images"] == []
+
+
+@pytest.mark.asyncio
+async def test_add_image_rejects_mismatched_file_url(
+    client: AsyncClient,
+    db_session: AsyncSession,
+):
+    await _login_as_role(client, db_session, UserRole.PRODUCT_DEPT)
+    spu = await _create_spu(
+        client,
+        code="SPU-SKU-010",
+        name="图片校验平台",
+        supplier_name="供应商甲甲",
+        restricted_countries=[],
+    )
+    create_response = await client.post(
+        "/api/v1/skus",
+        json=_sku_payload(
+            spu_id=spu["id"],
+            code="SKU010",
+            name_zh="图片校验标准版",
+            name_en="Image Validate Standard",
+        ),
+    )
+    sku_id = create_response.json()["id"]
+
+    response = await client.post(
+        f"/api/v1/skus/{sku_id}/images",
+        json={
+            "object_key": "sku-images/validate.png",
+            "file_url": "http://localhost:9000/erp-files/sku-images/validate.png",
+            "filename": "validate.png",
+            "content_type": "image/png",
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json()["message"] == "SKU图片URL与对象键不匹配"
+
+
+@pytest.mark.asyncio
 async def test_list_supports_spu_and_multi_filters(
     client: AsyncClient,
     db_session: AsyncSession,

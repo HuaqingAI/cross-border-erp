@@ -9,6 +9,7 @@ from app.schemas.sku import (
     SKUCreate,
     SKUCustomsInfoUpdate,
     SKUDetail,
+    SKUImageCreate,
     SKUListResponse,
     SKUProductStatus,
     SKUProductType,
@@ -94,3 +95,25 @@ async def update_sku_customs_info(
 ):
     service = SKUService(db)
     return await service.update_customs_info(sku_id, data, current_user)
+
+
+@router.post("/{sku_id}/images", response_model=SKUDetail, status_code=status.HTTP_201_CREATED)
+async def add_sku_image(
+    sku_id: int,
+    data: SKUImageCreate,
+    current_user: User = Depends(require_product_or_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    service = SKUService(db)
+    return await service.add_image(sku_id, data, current_user)
+
+
+@router.delete("/{sku_id}/images/{image_id}", response_model=SKUDetail)
+async def delete_sku_image(
+    sku_id: int,
+    image_id: int,
+    current_user: User = Depends(require_product_or_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    service = SKUService(db)
+    return await service.delete_image(sku_id, image_id, current_user)

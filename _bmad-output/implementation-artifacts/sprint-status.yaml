@@ -70,7 +70,7 @@ development_status:
   epic-4: in-progress
   4-1-sku-数据模型与-crud-api: review
   4-2-sku-报关信息维护: review
-  4-3-sku-产品图片上传: backlog
+  4-3-sku-产品图片上传: review
   4-4-sku-列表页与筛选: backlog
   4-5-sku-新增编辑表单页: backlog
   4-6-sku-详情页: backlog

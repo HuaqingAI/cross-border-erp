@@ -1,4 +1,5 @@
 from collections.abc import AsyncGenerator
+import logging
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
@@ -6,6 +7,7 @@ from app.core.config import settings
 
 engine = create_async_engine(settings.DATABASE_URL, echo=settings.DEBUG)
 AsyncSessionLocal = async_sessionmaker(engine, expire_on_commit=False)
+logger = logging.getLogger(__name__)
 
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
@@ -13,6 +15,12 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
         try:
             yield session
             await session.commit()
+            post_commit_hooks = session.info.pop("post_commit_hooks", [])
+            for hook in post_commit_hooks:
+                try:
+                    await hook()
+                except Exception:  # noqa: BLE001
+                    logger.exception("post-commit hook failed")
         except Exception:
             await session.rollback()
             raise

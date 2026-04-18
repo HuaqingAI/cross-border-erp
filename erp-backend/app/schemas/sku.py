@@ -92,6 +92,16 @@ class SKUCustomsInfoUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
+class SKUImageCreate(BaseModel):
+    object_key: str = Field(min_length=1, max_length=255)
+    file_url: str = Field(min_length=1, max_length=500)
+    filename: str = Field(min_length=1, max_length=255)
+    content_type: str = Field(min_length=1, max_length=100)
+    sort_order: int | None = Field(default=None, ge=0)
+
+    model_config = ConfigDict(extra="forbid")
+
+
 class SKUPackageDetailResponse(BaseModel):
     id: int
     net_weight_kg: Decimal | None = None
@@ -100,6 +110,17 @@ class SKUPackageDetailResponse(BaseModel):
     width_cm: Decimal | None = None
     height_cm: Decimal | None = None
     volume_cbm: Decimal | None = None
+    sort_order: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class SKUImageResponse(BaseModel):
+    id: int
+    object_key: str
+    file_url: str
+    filename: str
+    content_type: str
     sort_order: int
 
     model_config = ConfigDict(from_attributes=True)
@@ -157,6 +178,7 @@ class SKUDetail(BaseModel):
     package_type: str | None = None
     package_quantity: int | None = None
     package_details: list[SKUPackageDetailResponse]
+    images: list[SKUImageResponse] = Field(default_factory=list)
     customs_hscode: str | None = None
     customs_supervision_condition: str | None = None
     customs_declaration_elements: str | None = None
