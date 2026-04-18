@@ -2,6 +2,10 @@ import { Grid } from 'antd'
 import { Children, cloneElement, isValidElement } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 
+type StyleableChildProps = {
+  style?: CSSProperties
+}
+
 interface FormGridProps {
   children: ReactNode
   gap?: number
@@ -42,16 +46,13 @@ export default function FormGrid({
       }}
     >
       {Children.map(children, (child) => {
-        if (!itemStyle || !isValidElement(child)) {
+        if (!itemStyle || !isValidElement<StyleableChildProps>(child)) {
           return child
         }
 
-        const currentStyle =
-          typeof child.props === 'object' && child.props !== null && 'style' in child.props
-            ? (child.props.style as CSSProperties | undefined)
-            : undefined
+        const currentStyle = child.props.style
 
-        return cloneElement(child, {
+        return cloneElement<StyleableChildProps>(child, {
           style: {
             ...currentStyle,
             ...itemStyle,
