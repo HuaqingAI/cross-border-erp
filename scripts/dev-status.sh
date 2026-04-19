@@ -11,3 +11,6 @@ if [[ ! -x "$DOCKER_BIN" ]]; then
 fi
 
 "$DOCKER_BIN" compose -f docker-compose.yml -f docker-compose.dev.yml ps
+
+echo
+bash "$ROOT_DIR/scripts/frontend-dev-status.sh"
