@@ -37,6 +37,7 @@ services:
     image: mysql:8.0
     environment:
       MYSQL_ROOT_PASSWORD: password
+      MYSQL_ROOT_HOST: "%"
       MYSQL_DATABASE: erp
       MYSQL_CHARSET: utf8mb4
       MYSQL_COLLATION: utf8mb4_unicode_ci
