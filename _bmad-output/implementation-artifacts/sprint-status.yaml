@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-04-14
-last_updated: 2026-04-18
+last_updated: 2026-04-19
 project: cross-border-erp
 project_key: NOKEY
 tracking_system: file-system
@@ -74,7 +74,6 @@ development_status:
   4-4-sku-列表页与筛选: done
   4-5-sku-新增编辑表单页: review
   4-6-sku-详情页: backlog
-  4-7-sku-产品状态管理: backlog
   epic-4-retrospective: optional
 
   # Epic 5: 产品证书管理
