@@ -19,16 +19,22 @@ cat <<EOF
 - MySQL: 127.0.0.1:${MYSQL_PORT}
 - MinIO API: http://127.0.0.1:9000
 - MinIO Console: http://127.0.0.1:9001
-- 前端开发：bash scripts/frontend-dev.sh
+- 前端开发（前台）：bash scripts/frontend-dev.sh
+- 前端开发（后台）：bash scripts/frontend-dev-bg.sh
 
 推荐开发方式：
 - 后端开发：默认使用 Docker 中的 api/db/minio
 - 前端开发：本地运行 Vite，后端与依赖服务走 Docker
+- 推荐日常使用后台脚本，避免终端关闭后前端服务一起退出
 
 常用脚本：
 - bash scripts/dev-status.sh
 - bash scripts/backend-test.sh
 - bash scripts/frontend-test.sh
 - bash scripts/frontend-dev.sh
+- bash scripts/frontend-dev-bg.sh
+- bash scripts/frontend-dev-status.sh
+- bash scripts/frontend-dev-stop.sh
+- bash scripts/frontend-dev-restart.sh
 - bash scripts/dev-down.sh
 EOF
