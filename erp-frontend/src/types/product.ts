@@ -168,13 +168,23 @@ export interface SkuListQuery {
 }
 
 export interface SkuPackageDetail {
-  id: number
+  id?: number
   net_weight_kg?: string | null
   gross_weight_kg?: string | null
   length_cm?: string | null
   width_cm?: string | null
   height_cm?: string | null
   volume_cbm?: string | null
+  sort_order: number
+}
+
+export interface SkuPackageDetailInput {
+  net_weight_kg?: number | null
+  gross_weight_kg?: number | null
+  length_cm?: number | null
+  width_cm?: number | null
+  height_cm?: number | null
+  volume_cbm?: number | null
   sort_order: number
 }
 
@@ -185,4 +195,42 @@ export interface SkuImage {
   filename: string
   content_type: string
   sort_order: number
+}
+
+export interface SkuMutationPayload {
+  code: string
+  spu_id: number
+  name_zh: string
+  name_en: string
+  product_model: string
+  product_type: SkuProductType
+  core_params: string
+  product_status?: SkuProductStatus
+  electrical_params?: string | null
+  principle: string
+  usage: string
+  material?: string | null
+  unit: string
+  has_plug: boolean
+  is_special: boolean
+  special_notes?: string | null
+  package_type?: string | null
+  package_quantity?: number | null
+  package_details: SkuPackageDetailInput[]
+}
+
+export interface SkuCustomsInfoPayload {
+  customs_hscode?: string | null
+  customs_supervision_condition?: string | null
+  customs_declaration_elements?: string | null
+  customs_refund_tax_rate?: number | null
+  customs_info_ready?: boolean
+}
+
+export interface SkuImageCreatePayload {
+  object_key: string
+  file_url: string
+  filename: string
+  content_type: string
+  sort_order?: number
 }

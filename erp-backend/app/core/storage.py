@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import timedelta
 import json
+from urllib.parse import urlsplit
 from uuid import uuid4
 
 from minio import Minio
@@ -15,6 +16,17 @@ def _build_client() -> Minio:
         access_key=settings.MINIO_ACCESS_KEY,
         secret_key=settings.MINIO_SECRET_KEY,
         secure=settings.MINIO_SECURE,
+    )
+
+
+def _build_public_client() -> Minio:
+    public = urlsplit(settings.MINIO_PUBLIC_ENDPOINT)
+    return Minio(
+        public.netloc,
+        access_key=settings.MINIO_ACCESS_KEY,
+        secret_key=settings.MINIO_SECRET_KEY,
+        secure=public.scheme == "https",
+        region=settings.MINIO_REGION,
     )
 
 
@@ -61,6 +73,7 @@ async def create_presigned_upload(
     folder: str = "sku-images",
 ) -> tuple[str, str, str]:
     client = _build_client()
+    public_client = _build_public_client()
     bucket_name = settings.MINIO_SKU_IMAGE_BUCKET if folder == "sku-images" else settings.MINIO_BUCKET
     _ensure_bucket(
         client,
@@ -71,7 +84,7 @@ async def create_presigned_upload(
     extension = filename.split(".")[-1] if "." in filename else ""
     suffix = f".{extension}" if extension else ""
     object_key = f"{folder}/{uuid4().hex}{suffix}"
-    upload_url = client.presigned_put_object(
+    upload_url = public_client.presigned_put_object(
         bucket_name,
         object_key,
         expires=timedelta(minutes=30),
