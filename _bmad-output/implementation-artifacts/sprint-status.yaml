@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-04-14
-last_updated: 2026-04-19
+last_updated: 2026-04-20
 project: cross-border-erp
 project_key: NOKEY
 tracking_system: file-system
@@ -77,8 +77,8 @@ development_status:
   epic-4-retrospective: optional
 
   # Epic 5: 产品证书管理
-  epic-5: backlog
-  5-1-证书数据模型与-crud-api: backlog
+  epic-5: in-progress
+  5-1-证书数据模型与-crud-api: review
   5-2-证书到期预警与状态自动标记: backlog
   5-3-证书管理前端页面: backlog
   epic-5-retrospective: optional
