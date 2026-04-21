@@ -71,6 +71,14 @@ async def require_customs_info_editor(
 # 销售价格管理写操作：财务部 + 管理员（FR24-FR27）
 require_finance_or_admin = require_role(UserRole.FINANCE_DEPT, UserRole.ADMIN)
 
+# 销售价格读操作：产品部 + 商务部 + 财务部 + 管理员（FR35, FR36）
+require_price_read = require_role(
+    UserRole.PRODUCT_DEPT,
+    UserRole.BUSINESS_DEPT,
+    UserRole.FINANCE_DEPT,
+    UserRole.ADMIN,
+)
+
 # 数据导入操作：产品部 + 管理员（FR28-FR31）
 # 注：当前与 require_product_or_admin 权限一致，独立命名以便未来单独调整
 # （例如若导入功能需对商务部开放，只需修改此处，不影响其他产品操作）

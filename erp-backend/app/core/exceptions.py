@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from sqlalchemy.exc import IntegrityError
 
 from app.schemas.common import ErrorDetail, ErrorResponse
 
@@ -11,6 +12,24 @@ class BusinessError(Exception):
         self.code = code
         self.status_code = status_code
         super().__init__(message)
+
+
+def translate_integrity_error(exc: IntegrityError) -> BusinessError | None:
+    message = f"{exc}\n{getattr(exc, 'orig', '')}".lower()
+
+    if (
+        "ix_prices_active_sku_id" in message
+        or "prices.active_sku_id" in message
+    ):
+        return BusinessError("该SKU已存在价格记录")
+
+    if (
+        "ix_price_regions_price_id_active_country_code" in message
+        or "price_regions.price_id, price_regions.active_country_code" in message
+    ):
+        return BusinessError("同一 SKU 同一国家/地区不可重复设置价格")
+
+    return None
 
 
 def register_exception_handlers(app: FastAPI) -> None:

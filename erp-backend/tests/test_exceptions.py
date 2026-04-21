@@ -1,8 +1,9 @@
 import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy.exc import IntegrityError
 
-from app.core.exceptions import BusinessError, register_exception_handlers
+from app.core.exceptions import BusinessError, register_exception_handlers, translate_integrity_error
 
 
 @pytest.fixture
@@ -73,3 +74,40 @@ def test_business_error_default_attributes():
     err = BusinessError(message="默认错误")
     assert err.code == "BUSINESS_ERROR"
     assert err.status_code == 400
+
+
+def test_translate_integrity_error_for_duplicate_price():
+    exc = IntegrityError(
+        "INSERT INTO prices ...",
+        params={},
+        orig=Exception("UNIQUE constraint failed: prices.active_sku_id"),
+    )
+
+    translated = translate_integrity_error(exc)
+    assert translated is not None
+    assert translated.message == "该SKU已存在价格记录"
+    assert translated.status_code == 400
+
+
+def test_translate_integrity_error_for_duplicate_region():
+    exc = IntegrityError(
+        "INSERT INTO price_regions ...",
+        params={},
+        orig=Exception(
+            "UNIQUE constraint failed: price_regions.price_id, price_regions.active_country_code"
+        ),
+    )
+
+    translated = translate_integrity_error(exc)
+    assert translated is not None
+    assert translated.message == "同一 SKU 同一国家/地区不可重复设置价格"
+
+
+def test_translate_integrity_error_returns_none_for_unrelated_constraint():
+    exc = IntegrityError(
+        "INSERT INTO users ...",
+        params={},
+        orig=Exception("UNIQUE constraint failed: users.username"),
+    )
+
+    assert translate_integrity_error(exc) is None

@@ -40,6 +40,7 @@ from app.routers import auth as auth_router  # noqa: E402
 from app.routers import certificates as certificates_router  # noqa: E402
 from app.routers import faqs as faqs_router  # noqa: E402
 from app.routers import files as files_router  # noqa: E402
+from app.routers import prices as prices_router  # noqa: E402
 from app.routers import product_categories as product_categories_router  # noqa: E402
 from app.routers import product_documents as product_documents_router  # noqa: E402
 from app.routers import skus as skus_router  # noqa: E402
@@ -49,6 +50,7 @@ app.include_router(auth_router.router, prefix="/api/v1")
 app.include_router(certificates_router.router, prefix="/api/v1")
 app.include_router(faqs_router.router, prefix="/api/v1")
 app.include_router(files_router.router, prefix="/api/v1")
+app.include_router(prices_router.router, prefix="/api/v1")
 app.include_router(product_categories_router.router, prefix="/api/v1")
 app.include_router(product_documents_router.router, prefix="/api/v1")
 app.include_router(skus_router.router, prefix="/api/v1")

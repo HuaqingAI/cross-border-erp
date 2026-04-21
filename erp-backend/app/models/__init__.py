@@ -6,6 +6,7 @@ from app.models.certificate import (  # noqa: F401
     CertificateSPUAssignment,
 )
 from app.models.faq import FAQ  # noqa: F401
+from app.models.price import Price, PriceRegion  # noqa: F401
 from app.models.product_category import ProductCategory  # noqa: F401
 from app.models.product_document import (  # noqa: F401
     ProductDocument,
@@ -23,6 +24,8 @@ __all__ = [
     "CertificateSPUAssignment",
     "CertificateCategoryAssignment",
     "FAQ",
+    "Price",
+    "PriceRegion",
     "ProductCategory",
     "ProductDocument",
     "ProductDocumentSKUAssignment",
