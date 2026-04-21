@@ -40,6 +40,7 @@ export function resolveTabLabel(path: string): string | undefined {
   if (path === '/products/documents/new') return '新增资料'
   if (/^\/products\/documents\/[^/]+\/edit$/.test(path)) return '编辑资料'
   if (/^\/products\/documents\/[^/]+$/.test(path)) return '资料详情'
+  if (/^\/products\/faqs\/[^/]+$/.test(path)) return 'FAQ详情'
   if (path === '/products/faqs/new') return '新增FAQ'
   if (/^\/products\/faqs\/[^/]+\/edit$/.test(path)) return '编辑FAQ'
   return undefined

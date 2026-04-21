@@ -159,11 +159,17 @@ export default function FAQListPage() {
     {
       title: '操作',
       key: 'actions',
-      width: 140,
+      width: 180,
       fixed: 'right',
       render: (_, record) =>
         permission.canCreateProduct ? (
           <Space size={4}>
+            <Button
+              type="link"
+              onClick={() => openRouteTab(`/products/faqs/${record.id}`, 'FAQ详情')}
+            >
+              查看
+            </Button>
             <Button
               type="link"
               onClick={() => openRouteTab(`/products/faqs/${record.id}/edit`, '编辑FAQ')}
@@ -181,7 +187,14 @@ export default function FAQListPage() {
               </Button>
             </Popconfirm>
           </Space>
-        ) : null,
+        ) : (
+          <Button
+            type="link"
+            onClick={() => openRouteTab(`/products/faqs/${record.id}`, 'FAQ详情')}
+          >
+            查看
+          </Button>
+        ),
     },
   ]
 
@@ -223,12 +236,14 @@ export default function FAQListPage() {
             <Form.Item label="关键词" name="keyword">
               <Input placeholder="请输入问题关键词" />
             </Form.Item>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-              <Button onClick={handleReset}>重置</Button>
-              <Button type="primary" htmlType="submit">
-                查询
-              </Button>
-            </div>
+            <Form.Item label=" ">
+              <Space>
+                <Button type="primary" htmlType="submit">
+                  查询
+                </Button>
+                <Button onClick={handleReset}>重置</Button>
+              </Space>
+            </Form.Item>
           </div>
         </Form>
       </FilterCard>
@@ -249,21 +264,24 @@ export default function FAQListPage() {
         ) : null}
       </div>
 
-      <Table
-        rowKey="id"
-        columns={columns}
-        dataSource={faqsQuery.data?.items ?? []}
-        loading={faqsQuery.isLoading || spuOptionsQuery.isLoading}
-        pagination={false}
-        scroll={{ x: 980 }}
-      />
+      <div style={{ background: '#fff', borderRadius: 4, border: '1px solid #f0f0f0', padding: 16 }}>
+        <Table
+          rowKey="id"
+          columns={columns}
+          dataSource={faqsQuery.data?.items ?? []}
+          loading={faqsQuery.isLoading || spuOptionsQuery.isLoading}
+          pagination={false}
+          size="middle"
+          scroll={{ x: 980 }}
+        />
 
-      <PaginationBar
-        current={queryParams.page}
-        pageSize={queryParams.page_size}
-        total={faqsQuery.data?.total ?? 0}
-        onChange={handlePageChange}
-      />
+        <PaginationBar
+          current={queryParams.page}
+          pageSize={queryParams.page_size}
+          total={faqsQuery.data?.total ?? 0}
+          onChange={handlePageChange}
+        />
+      </div>
     </div>
   )
 }

@@ -226,12 +226,14 @@ export default function DocumentListPage() {
             <Form.Item label="关键词" name="keyword">
               <Input placeholder="请输入资料名称关键词" />
             </Form.Item>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-              <Button onClick={handleReset}>重置</Button>
-              <Button type="primary" htmlType="submit">
-                查询
-              </Button>
-            </div>
+            <Form.Item label=" ">
+              <Space>
+                <Button type="primary" htmlType="submit">
+                  查询
+                </Button>
+                <Button onClick={handleReset}>重置</Button>
+              </Space>
+            </Form.Item>
           </div>
         </Form>
       </FilterCard>
@@ -252,21 +254,24 @@ export default function DocumentListPage() {
         ) : null}
       </div>
 
-      <Table
-        rowKey="id"
-        columns={columns}
-        dataSource={documentsQuery.data?.items ?? []}
-        loading={documentsQuery.isLoading}
-        pagination={false}
-        scroll={{ x: 1180 }}
-      />
+      <div style={{ background: '#fff', borderRadius: 4, border: '1px solid #f0f0f0', padding: 16 }}>
+        <Table
+          rowKey="id"
+          columns={columns}
+          dataSource={documentsQuery.data?.items ?? []}
+          loading={documentsQuery.isLoading}
+          pagination={false}
+          size="middle"
+          scroll={{ x: 1180 }}
+        />
 
-      <PaginationBar
-        current={queryParams.page}
-        pageSize={queryParams.page_size}
-        total={documentsQuery.data?.total ?? 0}
-        onChange={handlePageChange}
-      />
+        <PaginationBar
+          current={queryParams.page}
+          pageSize={queryParams.page_size}
+          total={documentsQuery.data?.total ?? 0}
+          onChange={handlePageChange}
+        />
+      </div>
     </div>
   )
 }
