@@ -12,7 +12,10 @@ import CategoryPage from './features/products/categories/pages/CategoryPage'
 import CertificateDetailPage from './features/products/certificates/pages/CertificateDetailPage'
 import CertificateFormPage from './features/products/certificates/pages/CertificateFormPage'
 import CertificateListPage from './features/products/certificates/pages/CertificateListPage'
+import DocumentDetailPage from './features/products/documents/pages/DocumentDetailPage'
+import DocumentFormPage from './features/products/documents/pages/DocumentFormPage'
 import DocumentListPage from './features/products/documents/pages/DocumentListPage'
+import FAQFormPage from './features/products/faqs/pages/FAQFormPage'
 import FAQListPage from './features/products/faqs/pages/FAQListPage'
 import ImportPage from './features/products/import/pages/ImportPage'
 import SKUDetailPage from './features/products/skus/pages/SKUDetailPage'
@@ -123,6 +126,36 @@ function RoutedCertificateDetailPage() {
   )
 }
 
+function RoutedDocumentFormPage({ mode }: { mode: 'create' | 'edit' }) {
+  const { documentId } = useParams()
+
+  return (
+    <RoutedKeepAlive>
+      <DocumentFormPage mode={mode} documentId={documentId ?? null} />
+    </RoutedKeepAlive>
+  )
+}
+
+function RoutedDocumentDetailPage() {
+  const { documentId } = useParams()
+
+  return (
+    <RoutedKeepAlive>
+      <DocumentDetailPage documentId={documentId ?? null} />
+    </RoutedKeepAlive>
+  )
+}
+
+function RoutedFAQFormPage({ mode }: { mode: 'create' | 'edit' }) {
+  const { faqId } = useParams()
+
+  return (
+    <RoutedKeepAlive>
+      <FAQFormPage mode={mode} faqId={faqId ?? null} />
+    </RoutedKeepAlive>
+  )
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -211,12 +244,32 @@ function App() {
                     }
                   />
                   <Route
+                    path="/products/documents/new"
+                    element={<RoutedDocumentFormPage mode="create" />}
+                  />
+                  <Route
+                    path="/products/documents/:documentId"
+                    element={<RoutedDocumentDetailPage />}
+                  />
+                  <Route
+                    path="/products/documents/:documentId/edit"
+                    element={<RoutedDocumentFormPage mode="edit" />}
+                  />
+                  <Route
                     path="/products/faqs"
                     element={
                       <KeepAlive name="/products/faqs" id="/products/faqs">
                         <FAQListPage />
                       </KeepAlive>
                     }
+                  />
+                  <Route
+                    path="/products/faqs/new"
+                    element={<RoutedFAQFormPage mode="create" />}
+                  />
+                  <Route
+                    path="/products/faqs/:faqId/edit"
+                    element={<RoutedFAQFormPage mode="edit" />}
                   />
                   <Route
                     path="/prices"
