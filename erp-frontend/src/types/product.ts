@@ -317,3 +317,128 @@ export interface CertificateMutationPayload {
   file_name?: string | null
   remarks?: string | null
 }
+
+export type DocumentOwnershipType = '通用' | '指定SKU' | '按分类'
+
+export interface DocumentAttachment {
+  id?: number
+  object_key: string
+  file_url: string
+  file_name: string
+  sort_order: number
+}
+
+export interface DocumentRelatedSku {
+  id: number
+  sku_id: number
+  sku_code: string
+  sku_name_zh: string
+}
+
+export interface DocumentRelatedCategory {
+  id: number
+  category_id: number
+  category_code: string
+  category_name: string
+  level: number
+}
+
+export interface DocumentListItem {
+  id: number
+  name: string
+  document_type?: string | null
+  ownership_type: DocumentOwnershipType
+  ownership_summary: string
+  sku_ids: number[]
+  category_ids: number[]
+  applicable_countries: string[]
+  attachments: DocumentAttachment[]
+  created_at: string
+}
+
+export interface Document {
+  id: number
+  name: string
+  document_type?: string | null
+  content_html?: string | null
+  ownership_type: DocumentOwnershipType
+  ownership_summary: string
+  sku_ids: number[]
+  category_ids: number[]
+  applicable_countries: string[]
+  skus: DocumentRelatedSku[]
+  categories: DocumentRelatedCategory[]
+  attachments: DocumentAttachment[]
+  remarks?: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface DocumentListQuery {
+  page: number
+  page_size: number
+  document_type?: string
+  ownership_type?: DocumentOwnershipType
+  keyword?: string
+}
+
+export interface DocumentMutationPayload {
+  name: string
+  document_type?: string | null
+  content_html?: string | null
+  ownership_type: DocumentOwnershipType
+  sku_ids: number[]
+  category_ids: number[]
+  applicable_countries: string[]
+  attachments: DocumentAttachment[]
+  remarks?: string | null
+}
+
+export interface FaqListItem {
+  id: number
+  spu_id?: number | null
+  question_type?: string | null
+  question: string
+  answer: string
+  scope_summary: string
+  spu_code?: string | null
+  spu_name?: string | null
+  attachment_object_key?: string | null
+  attachment_file_url?: string | null
+  attachment_file_name?: string | null
+  created_at: string
+}
+
+export interface Faq {
+  id: number
+  spu_id?: number | null
+  question_type?: string | null
+  question: string
+  answer: string
+  scope_summary: string
+  spu_code?: string | null
+  spu_name?: string | null
+  attachment_object_key?: string | null
+  attachment_file_url?: string | null
+  attachment_file_name?: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface FaqListQuery {
+  page: number
+  page_size: number
+  spu_id?: number
+  question_type?: string
+  keyword?: string
+}
+
+export interface FaqMutationPayload {
+  spu_id?: number | null
+  question_type?: string | null
+  question: string
+  answer: string
+  attachment_object_key?: string | null
+  attachment_file_url?: string | null
+  attachment_file_name?: string | null
+}

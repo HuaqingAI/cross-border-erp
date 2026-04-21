@@ -87,7 +87,7 @@ development_status:
   epic-6: in-progress
   6-1-产品资料数据模型与-crud-api: review
   6-2-faq-数据模型与-crud-api: review
-  6-3-资料与-faq-管理前端页面: backlog
+  6-3-资料与-faq-管理前端页面: review
   epic-6-retrospective: optional
 
   # Epic 7: 销售价格管理与审批
