@@ -86,7 +86,7 @@ development_status:
   # Epic 6: 产品资料库与 FAQ 管理
   epic-6: in-progress
   6-1-产品资料数据模型与-crud-api: review
-  6-2-faq-数据模型与-crud-api: backlog
+  6-2-faq-数据模型与-crud-api: review
   6-3-资料与-faq-管理前端页面: backlog
   epic-6-retrospective: optional
 
