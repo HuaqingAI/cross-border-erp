@@ -15,6 +15,7 @@ import CertificateListPage from './features/products/certificates/pages/Certific
 import DocumentDetailPage from './features/products/documents/pages/DocumentDetailPage'
 import DocumentFormPage from './features/products/documents/pages/DocumentFormPage'
 import DocumentListPage from './features/products/documents/pages/DocumentListPage'
+import FAQDetailPage from './features/products/faqs/pages/FAQDetailPage'
 import FAQFormPage from './features/products/faqs/pages/FAQFormPage'
 import FAQListPage from './features/products/faqs/pages/FAQListPage'
 import ImportPage from './features/products/import/pages/ImportPage'
@@ -156,6 +157,16 @@ function RoutedFAQFormPage({ mode }: { mode: 'create' | 'edit' }) {
   )
 }
 
+function RoutedFAQDetailPage() {
+  const { faqId } = useParams()
+
+  return (
+    <RoutedKeepAlive>
+      <FAQDetailPage faqId={faqId ?? null} />
+    </RoutedKeepAlive>
+  )
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -262,6 +273,10 @@ function App() {
                         <FAQListPage />
                       </KeepAlive>
                     }
+                  />
+                  <Route
+                    path="/products/faqs/:faqId"
+                    element={<RoutedFAQDetailPage />}
                   />
                   <Route
                     path="/products/faqs/new"

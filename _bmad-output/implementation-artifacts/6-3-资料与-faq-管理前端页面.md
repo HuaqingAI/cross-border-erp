@@ -32,7 +32,7 @@ So that 我可以方便地集中管理所有产品相关资料和问答。
 **When** 页面加载完成  
 **Then** 筛选区：SPU（远程搜索）、问题类型、关键词  
 **And** 表格列：问题、SPU（空则显示"全局"）、问题类型、创建时间  
-**And** 操作：新增、编辑、删除
+**And** 操作：查看、新增、编辑、删除
 
 **Given** 用户新增 FAQ  
 **When** 表单页打开  
@@ -92,6 +92,7 @@ So that 我可以方便地集中管理所有产品相关资料和问答。
   - [x] 实现 `FAQListPage`
   - [x] 新增 `FAQFormPage`
   - [x] FAQ 新增 / 编辑页复用 SPU 远程搜索与附件上传底座
+  - [x] 新增 FAQ 详情页，补齐查看闭环
 
 - [x] Task 4: 路由与缓存一致性
   - [x] 在 `App.tsx` 注册资料 / FAQ 的列表、详情、表单路由
@@ -168,7 +169,7 @@ So that 我可以方便地集中管理所有产品相关资料和问答。
 - 2026-04-21: 明确本 Story 只做资料与 FAQ 的前端管理页，不扩展后端模型或 SKU / SPU 聚合页
 - 2026-04-21: 新增 `documents.ts` / `faqs.ts` API 接口与前端类型定义，打通 6.1 / 6.2 后端能力
 - 2026-04-21: 实现资料列表页、资料详情页、资料新增/编辑页，支持多文件上传、归属切换、SKU 搜索、分类选择和国家/地区输入
-- 2026-04-21: 实现 FAQ 列表页与 FAQ 新增/编辑页，支持 SPU 远程搜索、单附件上传与全局 / SPU 作用范围展示
+- 2026-04-21: 实现 FAQ 列表页、FAQ 详情页与 FAQ 新增/编辑页，支持 SPU 远程搜索、单附件上传与全局 / SPU 作用范围展示
 - 2026-04-21: 在 `App.tsx` 与 `SideMenu.tsx` 注册资料 / FAQ 路由与页签标题解析
 - 2026-04-21: 前端验证通过，`npm --prefix erp-frontend test` 96/96 通过，`npm --prefix erp-frontend run build` 通过
 
@@ -176,6 +177,7 @@ So that 我可以方便地集中管理所有产品相关资料和问答。
 
 - 已完成资料管理列表页、详情页、新增页、编辑页
 - 已完成 FAQ 管理列表页、新增页、编辑页
+- 已补齐 FAQ 详情页，保持资料 / FAQ 管理体验一致
 - 已复用现有 `FilterCard`、`FormSectionCard`、`FixedActionBar`、`FormGrid`、`upload.ts` 与 KeepAlive 路由模式
 - 已按前端规范实现路由层显式传 `mode` / `id`，并在保存成功后同步处理列表 / 详情缓存
 - 资料页已支持多文件附件、归属类型切换、SKU 远程搜索、分类多选路径与国家/地区 tags 输入
@@ -194,10 +196,12 @@ So that 我可以方便地集中管理所有产品相关资料和问答。
 - `erp-frontend/src/features/products/documents/pages/DocumentFormPage.tsx`
 - `erp-frontend/src/features/products/documents/pages/DocumentListPage.tsx`
 - `erp-frontend/src/features/products/faqs/pages/FAQFormPage.tsx`
+- `erp-frontend/src/features/products/faqs/pages/FAQDetailPage.tsx`
 - `erp-frontend/src/features/products/faqs/pages/FAQListPage.tsx`
 - `erp-frontend/src/test/features/DocumentFormPage.test.tsx`
 - `erp-frontend/src/test/features/DocumentListPage.test.tsx`
 - `erp-frontend/src/test/features/FAQFormPage.test.tsx`
+- `erp-frontend/src/test/features/FAQDetailPage.test.tsx`
 - `erp-frontend/src/test/features/FAQListPage.test.tsx`
 - `erp-frontend/src/types/product.ts`
 
