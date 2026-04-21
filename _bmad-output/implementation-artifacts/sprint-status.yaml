@@ -80,7 +80,7 @@ development_status:
   epic-5: in-progress
   5-1-证书数据模型与-crud-api: review
   5-2-证书到期预警与状态自动标记: backlog
-  5-3-证书管理前端页面: backlog
+  5-3-证书管理前端页面: review
   epic-5-retrospective: optional
 
   # Epic 6: 产品资料库与 FAQ 管理

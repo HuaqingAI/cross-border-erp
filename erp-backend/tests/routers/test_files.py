@@ -88,3 +88,29 @@ async def test_business_user_cannot_get_presigned_upload_url(
 
     assert response.status_code == 403
     assert response.json()["detail"] == "无权限执行此操作"
+
+
+@pytest.mark.asyncio
+async def test_product_user_can_delete_uploaded_object(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    await _login_as_role(client, db_session, UserRole.PRODUCT_DEPT)
+    deleted_keys: list[str] = []
+
+    async def fake_delete_file(object_name: str):
+        deleted_keys.append(object_name)
+
+    monkeypatch.setattr(
+        "app.services.files.delete_file",
+        fake_delete_file,
+    )
+
+    response = await client.delete(
+        "/api/v1/files/object",
+        params={"object_key": "certificates/test-key.pdf"},
+    )
+
+    assert response.status_code == 204
+    assert deleted_keys == ["certificates/test-key.pdf"]

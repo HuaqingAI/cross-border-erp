@@ -31,3 +31,11 @@
 - delete_cookie 未指定 path/domain，子路径反代场景可能无法清除 Cookie — 当前部署无此问题
 - 登录接口无速率限制/账号锁定机制 — 需网关或应用层限流，超出本 Story 范围
 - is_active server_default=sa.text("1") 对 PostgreSQL 不兼容 — 当前仅支持 MySQL，切换 DB 时需修改迁移
+
+## Deferred from: Epic 5 sequencing decision after Story 5.1 (2026-04-20)
+
+- Story 5.2「证书到期预警与状态自动标记」暂缓实施，保持 backlog，不进入当前开发流程
+- 暂缓原因：Story 5.1 已提供证书 `validity_status` 动态计算与按有效状态筛选能力，当前证书主流程已可用；5.2 属于主动治理/预警增强项，不阻塞证书管理基础能力上线
+- 当前替代基础：证书列表与详情查询已可实时返回 `有效 / 即将过期 / 已过期`，用户可手动筛选待续期证书
+- 恢复触发条件：证书前端管理页面（Story 5.3）上线后，或业务明确提出“系统需主动扫描并提醒即将过期证书”需求时，再恢复 Story 5.2
+- 后续推进建议：Epic 5 后续优先显式指定 Story 5.3，而不是自动拾取 Story 5.2

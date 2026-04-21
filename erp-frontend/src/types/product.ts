@@ -234,3 +234,86 @@ export interface SkuImageCreatePayload {
   content_type: string
   sort_order?: number
 }
+
+export type CertificateOwnershipType = '通用' | 'SPU归属' | '按分类'
+
+export type CertificateValidityStatus = '有效' | '即将过期' | '已过期'
+
+export interface CertificateRelatedSpu {
+  id: number
+  spu_id: number
+  spu_code: string
+  spu_name: string
+}
+
+export interface CertificateRelatedCategory {
+  id: number
+  category_id: number
+  category_code: string
+  category_name: string
+  level: number
+}
+
+export interface CertificateListItem {
+  id: number
+  name: string
+  certificate_no: string
+  certificate_type: string
+  issuing_authority: string
+  valid_from: string
+  valid_to: string
+  ownership_type: CertificateOwnershipType
+  ownership_summary: string
+  validity_status: CertificateValidityStatus
+  spu_ids: number[]
+  category_ids: number[]
+  created_at: string
+}
+
+export interface Certificate {
+  id: number
+  name: string
+  certificate_no: string
+  certificate_type: string
+  issuing_authority: string
+  valid_from: string
+  valid_to: string
+  ownership_type: CertificateOwnershipType
+  ownership_summary: string
+  validity_status: CertificateValidityStatus
+  spu_ids: number[]
+  category_ids: number[]
+  spus: CertificateRelatedSpu[]
+  categories: CertificateRelatedCategory[]
+  file_object_key?: string | null
+  file_url?: string | null
+  file_name?: string | null
+  remarks?: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface CertificateListQuery {
+  page: number
+  page_size: number
+  certificate_type?: string
+  ownership_type?: CertificateOwnershipType
+  validity_status?: CertificateValidityStatus
+  keyword?: string
+}
+
+export interface CertificateMutationPayload {
+  name: string
+  certificate_no: string
+  certificate_type: string
+  issuing_authority: string
+  valid_from: string
+  valid_to: string
+  ownership_type: CertificateOwnershipType
+  spu_ids: number[]
+  category_ids: number[]
+  file_object_key?: string | null
+  file_url?: string | null
+  file_name?: string | null
+  remarks?: string | null
+}

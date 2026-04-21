@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from app.core.storage import create_presigned_upload
+from app.core.storage import create_presigned_upload, delete_file
 from app.schemas.file import PresignedUrlRequest, PresignedUrlResponse
 
 
@@ -16,3 +16,6 @@ class FileService:
             file_key=file_key,
             file_url=file_url,
         )
+
+    async def delete_object(self, object_key: str) -> None:
+        await delete_file(object_key)
