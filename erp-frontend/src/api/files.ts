@@ -17,4 +17,12 @@ export const filesApi = {
     const response = await client.post<PresignedUrlResult>('/files/presigned-url', payload)
     return response.data
   },
+
+  async deleteObject(objectKey: string): Promise<void> {
+    await client.delete('/files/object', {
+      params: {
+        object_key: objectKey,
+      },
+    })
+  },
 }

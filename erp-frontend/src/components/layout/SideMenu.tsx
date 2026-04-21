@@ -34,6 +34,9 @@ export function resolveTabLabel(path: string): string | undefined {
   if (path === '/products/skus/new') return '新增SKU'
   if (/^\/products\/skus\/[^/]+\/edit$/.test(path)) return '编辑SKU'
   if (/^\/products\/skus\/[^/]+$/.test(path)) return 'SKU详情'
+  if (path === '/products/certificates/new') return '新增证书'
+  if (/^\/products\/certificates\/[^/]+\/edit$/.test(path)) return '编辑证书'
+  if (/^\/products\/certificates\/[^/]+$/.test(path)) return '证书详情'
   return undefined
 }
 

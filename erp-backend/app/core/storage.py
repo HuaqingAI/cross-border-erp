@@ -98,5 +98,14 @@ async def upload_file(file_data: bytes, filename: str, content_type: str) -> str
 
 async def delete_file(object_name: str) -> None:
     client = _build_client()
-    _ensure_bucket(client, settings.MINIO_SKU_IMAGE_BUCKET, public_read=True)
-    client.remove_object(settings.MINIO_SKU_IMAGE_BUCKET, object_name)
+    bucket_name = (
+        settings.MINIO_SKU_IMAGE_BUCKET
+        if object_name.startswith("sku-images/")
+        else settings.MINIO_BUCKET
+    )
+    _ensure_bucket(
+        client,
+        bucket_name,
+        public_read=bucket_name == settings.MINIO_SKU_IMAGE_BUCKET,
+    )
+    client.remove_object(bucket_name, object_name)

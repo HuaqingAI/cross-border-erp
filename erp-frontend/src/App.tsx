@@ -9,6 +9,8 @@ import ProtectedRoute from './features/auth/components/ProtectedRoute'
 import LoginPage from './features/auth/pages/LoginPage'
 import EnumConfigPage from './features/admin/enums/pages/EnumConfigPage'
 import CategoryPage from './features/products/categories/pages/CategoryPage'
+import CertificateDetailPage from './features/products/certificates/pages/CertificateDetailPage'
+import CertificateFormPage from './features/products/certificates/pages/CertificateFormPage'
 import CertificateListPage from './features/products/certificates/pages/CertificateListPage'
 import DocumentListPage from './features/products/documents/pages/DocumentListPage'
 import FAQListPage from './features/products/faqs/pages/FAQListPage'
@@ -101,6 +103,26 @@ function RoutedSKUDetailPage() {
   )
 }
 
+function RoutedCertificateFormPage({ mode }: { mode: 'create' | 'edit' }) {
+  const { certificateId } = useParams()
+
+  return (
+    <RoutedKeepAlive>
+      <CertificateFormPage mode={mode} certificateId={certificateId ?? null} />
+    </RoutedKeepAlive>
+  )
+}
+
+function RoutedCertificateDetailPage() {
+  const { certificateId } = useParams()
+
+  return (
+    <RoutedKeepAlive>
+      <CertificateDetailPage certificateId={certificateId ?? null} />
+    </RoutedKeepAlive>
+  )
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -167,6 +189,18 @@ function App() {
                         <CertificateListPage />
                       </KeepAlive>
                     }
+                  />
+                  <Route
+                    path="/products/certificates/new"
+                    element={<RoutedCertificateFormPage mode="create" />}
+                  />
+                  <Route
+                    path="/products/certificates/:certificateId"
+                    element={<RoutedCertificateDetailPage />}
+                  />
+                  <Route
+                    path="/products/certificates/:certificateId/edit"
+                    element={<RoutedCertificateFormPage mode="edit" />}
                   />
                   <Route
                     path="/products/documents"
