@@ -1,9 +1,11 @@
 from collections.abc import AsyncGenerator
 import logging
 
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.core.config import settings
+from app.core.exceptions import translate_integrity_error
 
 engine = create_async_engine(settings.DATABASE_URL, echo=settings.DEBUG)
 AsyncSessionLocal = async_sessionmaker(engine, expire_on_commit=False)
@@ -21,6 +23,12 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
                     await hook()
                 except Exception:  # noqa: BLE001
                     logger.exception("post-commit hook failed")
+        except IntegrityError as exc:
+            await session.rollback()
+            translated = translate_integrity_error(exc)
+            if translated is not None:
+                raise translated from exc
+            raise
         except Exception:
             await session.rollback()
             raise
