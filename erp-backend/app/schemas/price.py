@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from decimal import Decimal
+from enum import Enum
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -24,6 +25,13 @@ def _normalize_required_code(
     if not normalized:
         raise ValueError(empty_message)
     return normalized
+
+
+class PriceApprovalStatus(str, Enum):
+    DRAFT = "草稿"
+    PENDING = "待审批"
+    ACTIVE = "已生效"
+    REJECTED = "已驳回"
 
 
 class PriceRegionPayload(BaseModel):
@@ -76,6 +84,20 @@ class PriceUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
+class PriceRejectRequest(BaseModel):
+    reason: str = Field(min_length=1, max_length=500)
+
+    model_config = ConfigDict(extra="forbid")
+
+    @field_validator("reason", mode="before")
+    @classmethod
+    def normalize_reason(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("驳回原因不能为空")
+        return normalized
+
+
 class PriceRegionResponse(BaseModel):
     id: int
     country_code: str
@@ -111,6 +133,14 @@ class PriceListItem(BaseModel):
     supplier_name: str
     product_model: str
     product_status: str
+    approval_status: PriceApprovalStatus
+    rejection_reason: str | None = None
+    submitted_at: datetime | None = None
+    submitted_by: int | None = None
+    approved_at: datetime | None = None
+    approved_by: int | None = None
+    rejected_at: datetime | None = None
+    rejected_by: int | None = None
     region_summary: str
     updated_at: datetime
     created_at: datetime
@@ -142,6 +172,14 @@ class PriceDetail(BaseModel):
     supplier_name: str
     product_model: str
     product_status: str
+    approval_status: PriceApprovalStatus
+    rejection_reason: str | None = None
+    submitted_at: datetime | None = None
+    submitted_by: int | None = None
+    approved_at: datetime | None = None
+    approved_by: int | None = None
+    rejected_at: datetime | None = None
+    rejected_by: int | None = None
     region_summary: str
     regions: list[PriceRegionResponse] = Field(default_factory=list)
     created_at: datetime

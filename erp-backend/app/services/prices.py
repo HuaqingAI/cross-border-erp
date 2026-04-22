@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
+from app.core.audit import audit_service
 from app.core.exceptions import BusinessError, translate_integrity_error
 from app.core.permissions import can_view_full_price, can_view_purchase_price
 from app.models.price import Price, PriceRegion
@@ -12,6 +15,8 @@ from app.repositories.skus import SKURepository
 from app.schemas.price import (
     PriceCreate,
     PriceDetail,
+    PriceRejectRequest,
+    PriceApprovalStatus,
     PriceListItem,
     PriceListResponse,
     PriceRegionPayload,
@@ -23,8 +28,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class PriceService:
+    REGION_STAGE_DRAFT = "draft"
+    REGION_STAGE_APPROVED = "approved"
     DUPLICATE_PRICE_MESSAGE = "该SKU已存在价格记录"
     DUPLICATE_REGION_MESSAGE = "同一 SKU 同一国家/地区不可重复设置价格"
+    SUBMIT_FORBIDDEN_MESSAGE = "当前状态不可提交审批"
+    APPROVE_FORBIDDEN_MESSAGE = "当前状态不可审批"
+    REJECT_FORBIDDEN_MESSAGE = "当前状态不可驳回"
+    PENDING_EDIT_FORBIDDEN_MESSAGE = "待审批价格不可编辑"
+    SKU_CHANGE_FORBIDDEN_MESSAGE = "价格已进入审批流程后不可更换SKU"
+    NO_DRAFT_MESSAGE = "没有待提交的价格变更"
 
     def __init__(self, db: AsyncSession):
         self.db = db
@@ -59,10 +72,15 @@ class PriceService:
             supplier_name=sku.supplier_name,
             product_model=sku.product_model,
             product_status=sku.product_status,
+            approval_status=PriceApprovalStatus.DRAFT.value,
         )
         try:
             await self.repo.save(price)
-            await self._replace_regions(price.id, data.regions)
+            await self._replace_regions(
+                price.id,
+                data.regions,
+                version_stage=self.REGION_STAGE_DRAFT,
+            )
         except IntegrityError as exc:
             await self.db.rollback()
             self._raise_translated_integrity_error(exc)
@@ -73,6 +91,14 @@ class PriceService:
         if price is None:
             raise BusinessError("价格不存在", code="NOT_FOUND", status_code=404)
         return self._serialize_detail(price, current_user.role)
+
+    async def get_effective_price_by_sku(self, sku_id: int, current_user: User):
+        price = await self.repo.get_by_sku_id_with_related(sku_id)
+        if price is None:
+            raise BusinessError("价格不存在", code="NOT_FOUND", status_code=404)
+        if not self._get_approved_regions(price):
+            raise BusinessError("暂无已生效价格", code="NOT_FOUND", status_code=404)
+        return self._serialize_detail(price, current_user.role, effective_only=True)
 
     async def list_prices(
         self,
@@ -107,7 +133,16 @@ class PriceService:
         if price is None:
             raise BusinessError("价格不存在", code="NOT_FOUND", status_code=404)
 
+        if price.approval_status == PriceApprovalStatus.PENDING.value:
+            raise BusinessError(self.PENDING_EDIT_FORBIDDEN_MESSAGE)
+
         target_sku_id = data.sku_id if data.sku_id is not None else price.sku_id
+        if (
+            data.sku_id is not None
+            and data.sku_id != price.sku_id
+            and self._get_approved_regions(price)
+        ):
+            raise BusinessError(self.SKU_CHANGE_FORBIDDEN_MESSAGE)
         target_sku = await self._get_sku_or_raise(target_sku_id)
         await self._ensure_unique_price_for_sku(
             target_sku.id,
@@ -126,14 +161,147 @@ class PriceService:
         categories = await self._get_category_snapshot(target_sku)
         self._apply_snapshot(price, target_sku, categories)
         try:
+            if data.regions is not None and price.approval_status == PriceApprovalStatus.ACTIVE.value:
+                price.approval_status = PriceApprovalStatus.DRAFT.value
+                price.submitted_at = None
+                price.submitted_by = None
+                price.approved_at = None
+                price.approved_by = None
+                price.rejected_at = None
+                price.rejected_by = None
+                price.rejection_reason = None
             await self.repo.save(price)
 
             if data.regions is not None:
-                await self._replace_regions(price.id, data.regions)
+                await self._replace_regions(
+                    price.id,
+                    data.regions,
+                    version_stage=self.REGION_STAGE_DRAFT,
+                )
         except IntegrityError as exc:
             await self.db.rollback()
             self._raise_translated_integrity_error(exc)
 
+        return await self.get_price(price.id, current_user)
+
+    async def submit_price(self, price_id: int, current_user: User):
+        price = await self.repo.get_with_related(price_id)
+        if price is None:
+            raise BusinessError("价格不存在", code="NOT_FOUND", status_code=404)
+        if price.approval_status not in {
+            PriceApprovalStatus.DRAFT.value,
+            PriceApprovalStatus.REJECTED.value,
+        }:
+            raise BusinessError(self.SUBMIT_FORBIDDEN_MESSAGE)
+
+        draft_regions = self._get_draft_regions(price)
+        if not draft_regions:
+            raise BusinessError(self.NO_DRAFT_MESSAGE)
+
+        before = self._build_audit_payload(price)
+        price.approval_status = PriceApprovalStatus.PENDING.value
+        price.submitted_at = datetime.now(timezone.utc)
+        price.submitted_by = current_user.id
+        price.rejected_at = None
+        price.rejected_by = None
+        price.rejection_reason = None
+        await self.repo.save(price)
+        refreshed = await self.repo.get_with_related(price.id)
+        if refreshed is not None:
+            price = refreshed
+        await audit_service.log(
+            user=current_user,
+            action="submit_price",
+            entity_type="price",
+            entity_id=price.id,
+            before=before,
+            after=self._build_audit_payload(price),
+            db=self.db,
+        )
+        return await self.get_price(price.id, current_user)
+
+    async def approve_price(self, price_id: int, current_user: User):
+        price = await self.repo.get_with_related(price_id)
+        if price is None:
+            raise BusinessError("价格不存在", code="NOT_FOUND", status_code=404)
+        if price.approval_status != PriceApprovalStatus.PENDING.value:
+            raise BusinessError(self.APPROVE_FORBIDDEN_MESSAGE)
+
+        draft_regions = self._get_draft_regions(price)
+        if not draft_regions:
+            raise BusinessError(self.NO_DRAFT_MESSAGE)
+
+        before = self._build_audit_payload(price)
+        approved_regions = self._get_approved_regions(price)
+        if approved_regions:
+            await self.repo.soft_delete_regions(approved_regions)
+
+        for index, region in enumerate(draft_regions):
+            approved_region = PriceRegion(
+                price_id=price.id,
+                version_stage=self.REGION_STAGE_APPROVED,
+                country_code=region.country_code,
+                country_name=region.country_name,
+                currency=region.currency,
+                sale_price=region.sale_price,
+                list_price=region.list_price,
+                remarks=region.remarks,
+                sort_order=region.sort_order if region.sort_order is not None else index,
+            )
+            await self.repo.save_region(approved_region)
+
+        await self.repo.soft_delete_regions(draft_regions)
+        price.approval_status = PriceApprovalStatus.ACTIVE.value
+        price.approved_at = datetime.now(timezone.utc)
+        price.approved_by = current_user.id
+        price.rejected_at = None
+        price.rejected_by = None
+        price.rejection_reason = None
+        await self.repo.save(price)
+        refreshed = await self.repo.get_with_related(price.id)
+        if refreshed is not None:
+            price = refreshed
+        await audit_service.log(
+            user=current_user,
+            action="approve_price",
+            entity_type="price",
+            entity_id=price.id,
+            before=before,
+            after=self._build_audit_payload(price),
+            db=self.db,
+        )
+        return await self.get_price(price.id, current_user)
+
+    async def reject_price(
+        self,
+        price_id: int,
+        data: PriceRejectRequest,
+        current_user: User,
+    ):
+        price = await self.repo.get_with_related(price_id)
+        if price is None:
+            raise BusinessError("价格不存在", code="NOT_FOUND", status_code=404)
+        if price.approval_status != PriceApprovalStatus.PENDING.value:
+            raise BusinessError(self.REJECT_FORBIDDEN_MESSAGE)
+
+        before = self._build_audit_payload(price)
+        price.approval_status = PriceApprovalStatus.REJECTED.value
+        price.rejected_at = datetime.now(timezone.utc)
+        price.rejected_by = current_user.id
+        price.rejection_reason = data.reason
+        await self.repo.save(price)
+        refreshed = await self.repo.get_with_related(price.id)
+        if refreshed is not None:
+            price = refreshed
+        await audit_service.log(
+            user=current_user,
+            action="reject_price",
+            entity_type="price",
+            entity_id=price.id,
+            before=before,
+            after=self._build_audit_payload(price),
+            db=self.db,
+        )
         return await self.get_price(price.id, current_user)
 
     async def delete_price(self, price_id: int, current_user: User) -> None:
@@ -229,14 +397,17 @@ class PriceService:
         self,
         price_id: int,
         regions: list[PriceRegionPayload],
+        *,
+        version_stage: str,
     ) -> None:
-        existing = await self.repo.list_active_regions(price_id)
+        existing = await self.repo.list_active_regions(price_id, version_stage=version_stage)
         if existing:
             await self.repo.soft_delete_regions(existing)
 
         for index, payload in enumerate(regions):
             region = PriceRegion(
                 price_id=price_id,
+                version_stage=version_stage,
                 country_code=payload.country_code,
                 country_name=payload.country_name,
                 currency=payload.currency,
@@ -260,16 +431,77 @@ class PriceService:
             }
         )
 
-    def _build_region_summary(self, price: Price) -> str:
-        if not price.regions:
+    def _get_draft_regions(self, price: Price) -> list[PriceRegion]:
+        return [
+            region
+            for region in price.regions
+            if region.version_stage == self.REGION_STAGE_DRAFT and region.deleted_at is None
+        ]
+
+    def _get_approved_regions(self, price: Price) -> list[PriceRegion]:
+        return [
+            region
+            for region in price.regions
+            if region.version_stage == self.REGION_STAGE_APPROVED and region.deleted_at is None
+        ]
+
+    def _get_regions_for_role(
+        self,
+        price: Price,
+        role: UserRole,
+        *,
+        effective_only: bool = False,
+    ) -> list[PriceRegion]:
+        approved_regions = self._get_approved_regions(price)
+        if effective_only or not can_view_full_price(role):
+            return approved_regions
+
+        draft_regions = self._get_draft_regions(price)
+        return draft_regions or approved_regions
+
+    def _build_region_summary(self, regions: list[PriceRegion]) -> str:
+        if not regions:
             return "无区域价格"
-        first = price.regions[0]
+        first = regions[0]
         first_summary = f"{first.country_name} {first.currency} {first.sale_price}"
-        if len(price.regions) == 1:
+        if len(regions) == 1:
             return first_summary
-        return f"{first_summary} 等{len(price.regions)}个区域"
+        return f"{first_summary} 等{len(regions)}个区域"
+
+    def _build_audit_payload(self, price: Price) -> dict:
+        return {
+            "approval_status": price.approval_status,
+            "submitted_at": price.submitted_at,
+            "submitted_by": price.submitted_by,
+            "approved_at": price.approved_at,
+            "approved_by": price.approved_by,
+            "rejected_at": price.rejected_at,
+            "rejected_by": price.rejected_by,
+            "rejection_reason": price.rejection_reason,
+            "draft_regions": [
+                self._serialize_region_for_audit(region)
+                for region in self._get_draft_regions(price)
+            ],
+            "approved_regions": [
+                self._serialize_region_for_audit(region)
+                for region in self._get_approved_regions(price)
+            ],
+        }
+
+    def _serialize_region_for_audit(self, region: PriceRegion) -> dict:
+        return {
+            "country_code": region.country_code,
+            "country_name": region.country_name,
+            "currency": region.currency,
+            "sale_price": region.sale_price,
+            "list_price": region.list_price,
+            "remarks": region.remarks,
+            "sort_order": region.sort_order,
+            "version_stage": region.version_stage,
+        }
 
     def _serialize_list_item(self, price: Price, role: UserRole) -> PriceListItem:
+        visible_regions = self._get_regions_for_role(price, role)
         payload = {
             "id": price.id,
             "sku_id": price.sku_id,
@@ -291,7 +523,15 @@ class PriceService:
             "supplier_name": price.supplier_name,
             "product_model": price.product_model,
             "product_status": price.product_status,
-            "region_summary": self._build_region_summary(price),
+            "approval_status": price.approval_status,
+            "rejection_reason": price.rejection_reason,
+            "submitted_at": price.submitted_at,
+            "submitted_by": price.submitted_by,
+            "approved_at": price.approved_at,
+            "approved_by": price.approved_by,
+            "rejected_at": price.rejected_at,
+            "rejected_by": price.rejected_by,
+            "region_summary": self._build_region_summary(visible_regions),
             "updated_at": price.updated_at,
             "created_at": price.created_at,
         }
@@ -299,7 +539,14 @@ class PriceService:
             payload["purchase_price"] = price.purchase_price
         return PriceListItem.model_validate(payload)
 
-    def _serialize_detail(self, price: Price, role: UserRole) -> PriceDetail:
+    def _serialize_detail(
+        self,
+        price: Price,
+        role: UserRole,
+        *,
+        effective_only: bool = False,
+    ) -> PriceDetail:
+        visible_regions = self._get_regions_for_role(price, role, effective_only=effective_only)
         payload = {
             "id": price.id,
             "sku_id": price.sku_id,
@@ -321,16 +568,28 @@ class PriceService:
             "supplier_name": price.supplier_name,
             "product_model": price.product_model,
             "product_status": price.product_status,
-            "region_summary": self._build_region_summary(price),
+            "approval_status": (
+                PriceApprovalStatus.ACTIVE.value
+                if effective_only
+                else price.approval_status
+            ),
+            "rejection_reason": None if effective_only else price.rejection_reason,
+            "submitted_at": None if effective_only else price.submitted_at,
+            "submitted_by": None if effective_only else price.submitted_by,
+            "approved_at": None if effective_only else price.approved_at,
+            "approved_by": None if effective_only else price.approved_by,
+            "rejected_at": None if effective_only else price.rejected_at,
+            "rejected_by": None if effective_only else price.rejected_by,
+            "region_summary": self._build_region_summary(visible_regions),
             "created_at": price.created_at,
             "updated_at": price.updated_at,
         }
         if can_view_purchase_price(role):
             payload["purchase_price"] = price.purchase_price
-        if can_view_full_price(role):
+        if effective_only or can_view_full_price(role):
             payload["regions"] = [
                 PriceRegionResponse.model_validate(region)
-                for region in price.regions
+                for region in visible_regions
             ]
         return PriceDetail.model_validate(payload)
 

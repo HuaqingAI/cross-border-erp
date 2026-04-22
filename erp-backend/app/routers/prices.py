@@ -3,11 +3,16 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.permissions import require_finance_or_admin, require_price_read
+from app.core.permissions import require_admin, require_finance_or_admin, require_price_read
 from app.db.session import get_db
-from app.deps import get_current_user
 from app.models.user import User
-from app.schemas.price import PriceCreate, PriceDetail, PriceListResponse, PriceUpdate
+from app.schemas.price import (
+    PriceCreate,
+    PriceDetail,
+    PriceListResponse,
+    PriceRejectRequest,
+    PriceUpdate,
+)
 from app.services.prices import PriceService
 
 router = APIRouter(prefix="/prices", tags=["Prices"])
@@ -46,6 +51,16 @@ async def list_prices(
     )
 
 
+@router.get("/sku/{sku_id}/effective", response_model=PriceDetail)
+async def get_effective_price_by_sku(
+    sku_id: int,
+    current_user: User = Depends(require_price_read),
+    db: AsyncSession = Depends(get_db),
+):
+    service = PriceService(db)
+    return await service.get_effective_price_by_sku(sku_id, current_user)
+
+
 @router.get("/{price_id}", response_model=PriceDetail)
 async def get_price(
     price_id: int,
@@ -54,6 +69,37 @@ async def get_price(
 ):
     service = PriceService(db)
     return await service.get_price(price_id, current_user)
+
+
+@router.post("/{price_id}/submit", response_model=PriceDetail)
+async def submit_price(
+    price_id: int,
+    current_user: User = Depends(require_finance_or_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    service = PriceService(db)
+    return await service.submit_price(price_id, current_user)
+
+
+@router.post("/{price_id}/approve", response_model=PriceDetail)
+async def approve_price(
+    price_id: int,
+    current_user: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    service = PriceService(db)
+    return await service.approve_price(price_id, current_user)
+
+
+@router.post("/{price_id}/reject", response_model=PriceDetail)
+async def reject_price(
+    price_id: int,
+    data: PriceRejectRequest,
+    current_user: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    service = PriceService(db)
+    return await service.reject_price(price_id, data, current_user)
 
 
 @router.patch("/{price_id}", response_model=PriceDetail)

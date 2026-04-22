@@ -94,7 +94,7 @@ def test_translate_integrity_error_for_duplicate_region():
         "INSERT INTO price_regions ...",
         params={},
         orig=Exception(
-            "UNIQUE constraint failed: price_regions.price_id, price_regions.active_country_code"
+            "UNIQUE constraint failed: price_regions.price_id, price_regions.version_stage, price_regions.active_country_code"
         ),
     )
 

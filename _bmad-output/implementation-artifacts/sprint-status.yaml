@@ -93,7 +93,7 @@ development_status:
   # Epic 7: 销售价格管理与审批
   epic-7: in-progress
   7-1-价格数据模型与-crud-api: review
-  7-2-价格变更审批流: backlog
+  7-2-价格变更审批流: review
   7-3-价格管理前端页面: backlog
   epic-7-retrospective: optional
 

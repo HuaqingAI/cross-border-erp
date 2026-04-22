@@ -24,8 +24,10 @@ def translate_integrity_error(exc: IntegrityError) -> BusinessError | None:
         return BusinessError("该SKU已存在价格记录")
 
     if (
-        "ix_price_regions_price_id_active_country_code" in message
+        "ix_price_regions_price_id_version_stage_active_country_code" in message
+        or "ix_price_regions_price_id_active_country_code" in message
         or "price_regions.price_id, price_regions.active_country_code" in message
+        or "price_regions.price_id, price_regions.version_stage, price_regions.active_country_code" in message
     ):
         return BusinessError("同一 SKU 同一国家/地区不可重复设置价格")
 
