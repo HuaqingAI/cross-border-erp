@@ -1,11 +1,12 @@
 // src/components/common/FixedActionBar.tsx
 import { Button, Space } from 'antd'
-import type { CSSProperties } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import { useUIStore } from '../../stores/uiStore'
 
 interface FixedActionBarProps {
   onSave: () => void
   onCancel: () => void
+  extraActions?: ReactNode
   loading?: boolean
   saveText?: string
   cancelText?: string
@@ -15,6 +16,7 @@ interface FixedActionBarProps {
 export default function FixedActionBar({
   onSave,
   onCancel,
+  extraActions,
   loading = false,
   saveText = '保存',
   cancelText = '取消',
@@ -42,6 +44,7 @@ export default function FixedActionBar({
       }}
     >
       <Space size={12}>
+        {extraActions}
         <Button onClick={onCancel} disabled={loading}>
           {cancelText}
         </Button>

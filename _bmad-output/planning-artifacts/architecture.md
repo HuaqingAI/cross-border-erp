@@ -402,6 +402,11 @@ class ErrorResponse(BaseModel):
 | 文件上传 | `app/core/storage.py` | `utils/upload.ts` |
 | 枚举管理（FR37） | `app/*/enums.*` | `features/admin/enums/` |
 
+**枚举管理补充约束：**
+- `country_region` 应作为系统级枚举组纳入枚举管理，供价格区域、资料适用国家/地区、SPU 禁止经营国家等字段统一复用
+- 国家/地区类业务字段优先提交并存储标准编码（如 `CN`、`US`、`GLOBAL`），展示文案由枚举配置解析，不应把自由文本名称作为长期主数据来源
+- `GLOBAL` 作为内置业务特殊值保留，即使后续开放枚举配置，也应默认存在且不可删除
+
 ### 完整项目目录结构
 
 ```
@@ -658,6 +663,11 @@ cross-border-erp/
 | FR28-31 数据导入 | `import_service` + 批量写入 + 进度状态表 |
 | FR32-34 搜索筛选 | SQLAlchemy 动态 where + 枚举状态过滤 |
 | FR35-37 RBAC/枚举 | `permissions.py` + 多 Schema + `enums_service` |
+
+**FR35-37 枚举复用补充：**
+- `enums_service` 除单位、产品类型、证书类型、资料类型、币种外，还应统一承载 `country_region`
+- 前端业务表单对国家/地区字段应统一消费枚举接口，不在各页面分别维护独立常量或手工名单
+- 若历史业务表已同时保存 `country_code` 与 `country_name`，后续应以 `country_code` 为准逐步收口，`country_name` 仅作为兼容展示字段
 
 **NFR 全部覆盖：** 性能（索引 + selectinload 避免 N+1）/ 安全（JWT Cookie + RBAC + 审计日志）/ 可靠性（Docker 自动重启 + MySQL 每日备份）/ 可用性（中文界面，无 i18n 需求）
 

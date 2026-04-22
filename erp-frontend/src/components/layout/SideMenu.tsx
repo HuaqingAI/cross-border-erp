@@ -43,6 +43,9 @@ export function resolveTabLabel(path: string): string | undefined {
   if (/^\/products\/faqs\/[^/]+$/.test(path)) return 'FAQ详情'
   if (path === '/products/faqs/new') return '新增FAQ'
   if (/^\/products\/faqs\/[^/]+\/edit$/.test(path)) return '编辑FAQ'
+  if (path === '/prices/new') return '新增价格'
+  if (/^\/prices\/[^/]+$/.test(path)) return '价格详情'
+  if (/^\/prices\/[^/]+\/edit$/.test(path)) return '编辑价格'
   return undefined
 }
 

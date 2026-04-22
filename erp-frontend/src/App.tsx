@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
-import { ConfigProvider } from 'antd'
+import { App as AntdApp, ConfigProvider } from 'antd'
 import zhCN from 'antd/locale/zh_CN'
 import { AliveScope, KeepAlive } from 'react-activation'
 import { BrowserRouter, Navigate, Route, Routes, useLocation, useParams } from 'react-router-dom'
@@ -25,6 +25,8 @@ import SKUListPage from './features/products/skus/pages/SKUListPage'
 import SPUDetailPage from './features/products/spus/pages/SPUDetailPage'
 import SPUFormPage from './features/products/spus/pages/SPUFormPage'
 import SPUListPage from './features/products/spus/pages/SPUListPage'
+import PriceDetailPage from './features/prices/pages/PriceDetailPage'
+import PriceFormPage from './features/prices/pages/PriceFormPage'
 import PriceListPage from './features/prices/pages/PriceListPage'
 
 const queryClient = new QueryClient({
@@ -167,155 +169,180 @@ function RoutedFAQDetailPage() {
   )
 }
 
+function RoutedPriceFormPage({ mode }: { mode: 'create' | 'edit' }) {
+  const { priceId } = useParams()
+
+  return (
+    <RoutedKeepAlive>
+      <PriceFormPage mode={mode} priceId={priceId ?? null} />
+    </RoutedKeepAlive>
+  )
+}
+
+function RoutedPriceDetailPage() {
+  const { priceId } = useParams()
+
+  return (
+    <RoutedKeepAlive>
+      <PriceDetailPage priceId={priceId ?? null} />
+    </RoutedKeepAlive>
+  )
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ConfigProvider theme={antdTheme} locale={zhCN}>
-        <BrowserRouter>
-          <AliveScope>
-            <Routes>
-              <Route path="/login" element={<LoginPage />} />
-              <Route element={<ProtectedRoute />}>
-                <Route element={<AppLayout />}>
-                  <Route index element={<Navigate to="/products/skus" replace />} />
-                  <Route
-                    path="/products/categories"
-                    element={
-                      <KeepAlive name="/products/categories" id="/products/categories">
-                        <CategoryPage />
-                      </KeepAlive>
-                    }
-                  />
-                  <Route
-                    path="/products/spus"
-                    element={
-                      <KeepAlive name="/products/spus" id="/products/spus">
-                        <SPUListPage />
-                      </KeepAlive>
-                    }
-                  />
-                  <Route
-                    path="/products/spus/new"
-                    element={<RoutedSPUFormPage mode="create" />}
-                  />
-                  <Route
-                    path="/products/spus/:spuId"
-                    element={<RoutedSPUDetailPage />}
-                  />
-                  <Route
-                    path="/products/spus/:spuId/edit"
-                    element={<RoutedSPUFormPage mode="edit" />}
-                  />
-                  <Route
-                    path="/products/skus"
-                    element={
-                      <KeepAlive name="/products/skus" id="/products/skus">
-                        <SKUListPage />
-                      </KeepAlive>
-                    }
-                  />
-                  <Route
-                    path="/products/skus/new"
-                    element={<RoutedSKUFormPage mode="create" />}
-                  />
-                  <Route
-                    path="/products/skus/:skuId"
-                    element={<RoutedSKUDetailPage />}
-                  />
-                  <Route
-                    path="/products/skus/:skuId/edit"
-                    element={<RoutedSKUFormPage mode="edit" />}
-                  />
-                  <Route
-                    path="/products/certificates"
-                    element={
-                      <KeepAlive name="/products/certificates" id="/products/certificates">
-                        <CertificateListPage />
-                      </KeepAlive>
-                    }
-                  />
-                  <Route
-                    path="/products/certificates/new"
-                    element={<RoutedCertificateFormPage mode="create" />}
-                  />
-                  <Route
-                    path="/products/certificates/:certificateId"
-                    element={<RoutedCertificateDetailPage />}
-                  />
-                  <Route
-                    path="/products/certificates/:certificateId/edit"
-                    element={<RoutedCertificateFormPage mode="edit" />}
-                  />
-                  <Route
-                    path="/products/documents"
-                    element={
-                      <KeepAlive name="/products/documents" id="/products/documents">
-                        <DocumentListPage />
-                      </KeepAlive>
-                    }
-                  />
-                  <Route
-                    path="/products/documents/new"
-                    element={<RoutedDocumentFormPage mode="create" />}
-                  />
-                  <Route
-                    path="/products/documents/:documentId"
-                    element={<RoutedDocumentDetailPage />}
-                  />
-                  <Route
-                    path="/products/documents/:documentId/edit"
-                    element={<RoutedDocumentFormPage mode="edit" />}
-                  />
-                  <Route
-                    path="/products/faqs"
-                    element={
-                      <KeepAlive name="/products/faqs" id="/products/faqs">
-                        <FAQListPage />
-                      </KeepAlive>
-                    }
-                  />
-                  <Route
-                    path="/products/faqs/:faqId"
-                    element={<RoutedFAQDetailPage />}
-                  />
-                  <Route
-                    path="/products/faqs/new"
-                    element={<RoutedFAQFormPage mode="create" />}
-                  />
-                  <Route
-                    path="/products/faqs/:faqId/edit"
-                    element={<RoutedFAQFormPage mode="edit" />}
-                  />
-                  <Route
-                    path="/prices"
-                    element={
-                      <KeepAlive name="/prices" id="/prices">
-                        <PriceListPage />
-                      </KeepAlive>
-                    }
-                  />
-                  <Route
-                    path="/import"
-                    element={
-                      <KeepAlive name="/import" id="/import">
-                        <ImportPage />
-                      </KeepAlive>
-                    }
-                  />
-                  <Route
-                    path="/admin/enums"
-                    element={
-                      <KeepAlive name="/admin/enums" id="/admin/enums">
-                        <EnumConfigPage />
-                      </KeepAlive>
-                    }
-                  />
-                  <Route path="*" element={<Navigate to="/products/skus" replace />} />
+        <AntdApp>
+          <BrowserRouter>
+            <AliveScope>
+              <Routes>
+                <Route path="/login" element={<LoginPage />} />
+                <Route element={<ProtectedRoute />}>
+                  <Route element={<AppLayout />}>
+                    <Route index element={<Navigate to="/products/skus" replace />} />
+                    <Route
+                      path="/products/categories"
+                      element={
+                        <KeepAlive name="/products/categories" id="/products/categories">
+                          <CategoryPage />
+                        </KeepAlive>
+                      }
+                    />
+                    <Route
+                      path="/products/spus"
+                      element={
+                        <KeepAlive name="/products/spus" id="/products/spus">
+                          <SPUListPage />
+                        </KeepAlive>
+                      }
+                    />
+                    <Route
+                      path="/products/spus/new"
+                      element={<RoutedSPUFormPage mode="create" />}
+                    />
+                    <Route
+                      path="/products/spus/:spuId"
+                      element={<RoutedSPUDetailPage />}
+                    />
+                    <Route
+                      path="/products/spus/:spuId/edit"
+                      element={<RoutedSPUFormPage mode="edit" />}
+                    />
+                    <Route
+                      path="/products/skus"
+                      element={
+                        <KeepAlive name="/products/skus" id="/products/skus">
+                          <SKUListPage />
+                        </KeepAlive>
+                      }
+                    />
+                    <Route
+                      path="/products/skus/new"
+                      element={<RoutedSKUFormPage mode="create" />}
+                    />
+                    <Route
+                      path="/products/skus/:skuId"
+                      element={<RoutedSKUDetailPage />}
+                    />
+                    <Route
+                      path="/products/skus/:skuId/edit"
+                      element={<RoutedSKUFormPage mode="edit" />}
+                    />
+                    <Route
+                      path="/products/certificates"
+                      element={
+                        <KeepAlive name="/products/certificates" id="/products/certificates">
+                          <CertificateListPage />
+                        </KeepAlive>
+                      }
+                    />
+                    <Route
+                      path="/products/certificates/new"
+                      element={<RoutedCertificateFormPage mode="create" />}
+                    />
+                    <Route
+                      path="/products/certificates/:certificateId"
+                      element={<RoutedCertificateDetailPage />}
+                    />
+                    <Route
+                      path="/products/certificates/:certificateId/edit"
+                      element={<RoutedCertificateFormPage mode="edit" />}
+                    />
+                    <Route
+                      path="/products/documents"
+                      element={
+                        <KeepAlive name="/products/documents" id="/products/documents">
+                          <DocumentListPage />
+                        </KeepAlive>
+                      }
+                    />
+                    <Route
+                      path="/products/documents/new"
+                      element={<RoutedDocumentFormPage mode="create" />}
+                    />
+                    <Route
+                      path="/products/documents/:documentId"
+                      element={<RoutedDocumentDetailPage />}
+                    />
+                    <Route
+                      path="/products/documents/:documentId/edit"
+                      element={<RoutedDocumentFormPage mode="edit" />}
+                    />
+                    <Route
+                      path="/products/faqs"
+                      element={
+                        <KeepAlive name="/products/faqs" id="/products/faqs">
+                          <FAQListPage />
+                        </KeepAlive>
+                      }
+                    />
+                    <Route
+                      path="/products/faqs/:faqId"
+                      element={<RoutedFAQDetailPage />}
+                    />
+                    <Route
+                      path="/products/faqs/new"
+                      element={<RoutedFAQFormPage mode="create" />}
+                    />
+                    <Route
+                      path="/products/faqs/:faqId/edit"
+                      element={<RoutedFAQFormPage mode="edit" />}
+                    />
+                    <Route
+                      path="/prices"
+                      element={
+                        <KeepAlive name="/prices" id="/prices">
+                          <PriceListPage />
+                        </KeepAlive>
+                      }
+                    />
+                    <Route path="/prices/new" element={<RoutedPriceFormPage mode="create" />} />
+                    <Route path="/prices/:priceId" element={<RoutedPriceDetailPage />} />
+                    <Route path="/prices/:priceId/edit" element={<RoutedPriceFormPage mode="edit" />} />
+                    <Route
+                      path="/import"
+                      element={
+                        <KeepAlive name="/import" id="/import">
+                          <ImportPage />
+                        </KeepAlive>
+                      }
+                    />
+                    <Route
+                      path="/admin/enums"
+                      element={
+                        <KeepAlive name="/admin/enums" id="/admin/enums">
+                          <EnumConfigPage />
+                        </KeepAlive>
+                      }
+                    />
+                    <Route path="*" element={<Navigate to="/products/skus" replace />} />
+                  </Route>
                 </Route>
-              </Route>
-            </Routes>
-          </AliveScope>
-        </BrowserRouter>
+              </Routes>
+            </AliveScope>
+          </BrowserRouter>
+        </AntdApp>
       </ConfigProvider>
     </QueryClientProvider>
   )

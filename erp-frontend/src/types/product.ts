@@ -235,6 +235,87 @@ export interface SkuImageCreatePayload {
   sort_order?: number
 }
 
+export type PriceApprovalStatus = '草稿' | '待审批' | '已生效' | '已驳回'
+
+export interface PriceRegion {
+  id?: number
+  country_code: string
+  country_name: string
+  currency: string
+  sale_price: string
+  list_price: string
+  remarks?: string | null
+  sort_order: number
+}
+
+export interface PriceRegionInput {
+  country_code: string
+  country_name: string
+  currency: string
+  sale_price: number
+  list_price: number
+  remarks?: string | null
+  sort_order?: number
+}
+
+export interface PriceListItem {
+  id: number
+  sku_id: number
+  sku_code: string
+  sku_name_zh: string
+  sku_name_en: string
+  spu_id: number
+  spu_code: string
+  spu_name: string
+  level1_category_id: number
+  level1_category_code: string
+  level1_category_name: string
+  level2_category_id: number
+  level2_category_code: string
+  level2_category_name: string
+  level3_category_id: number
+  level3_category_code: string
+  level3_category_name: string
+  purchase_price?: string | null
+  supplier_name: string
+  product_model: string
+  product_status: SkuProductStatus | string
+  approval_status: PriceApprovalStatus
+  rejection_reason?: string | null
+  submitted_at?: string | null
+  submitted_by?: number | null
+  approved_at?: string | null
+  approved_by?: number | null
+  rejected_at?: string | null
+  rejected_by?: number | null
+  region_summary: string
+  updated_at: string
+  created_at: string
+}
+
+export interface PriceDetail extends PriceListItem {
+  regions: PriceRegion[]
+}
+
+export interface PriceListQuery {
+  page: number
+  page_size: number
+  sku_id?: number
+  level1_category_id?: number
+  approval_status?: PriceApprovalStatus
+  supplier_name?: string
+  keyword?: string
+}
+
+export interface PriceMutationPayload {
+  sku_id: number
+  regions: PriceRegionInput[]
+}
+
+export interface PriceRejectPayload {
+  reason: string
+}
+
 export type CertificateOwnershipType = '通用' | 'SPU归属' | '按分类'
 
 export type CertificateValidityStatus = '有效' | '即将过期' | '已过期'

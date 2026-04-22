@@ -899,6 +899,58 @@ async def test_editing_active_price_resets_previous_approval_metadata(
 
 
 @pytest.mark.asyncio
+async def test_price_list_supports_approval_status_filter(
+    client: AsyncClient,
+    db_session: AsyncSession,
+):
+    await _login_as_role(client, db_session, UserRole.PRODUCT_DEPT)
+    spu = await _create_spu(
+        client,
+        code="SPU-PRICE-009E",
+        name="状态筛选平台",
+        prefix="PRICE9E",
+        supplier_name="供应商筛",
+    )
+    sku = await _create_sku(
+        client,
+        spu_id=spu["id"],
+        code="SKU-PRICE-009E",
+        name_zh="状态筛选平台标准版",
+        name_en="Status Filter Platform",
+    )
+
+    await _login_as_role(client, db_session, UserRole.FINANCE_DEPT)
+    create_response = await client.post(
+        "/api/v1/prices",
+        json=_price_payload(
+            sku_id=sku["id"],
+            regions=[_region(country_code="JP", country_name="日本", sale_price="205.00", list_price="305.00")],
+        ),
+    )
+    assert create_response.status_code == 201
+    price_id = create_response.json()["id"]
+
+    submit_response = await client.post(f"/api/v1/prices/{price_id}/submit")
+    assert submit_response.status_code == 200
+
+    pending_list_response = await client.get(
+        "/api/v1/prices",
+        params={"approval_status": "待审批"},
+    )
+    assert pending_list_response.status_code == 200
+    pending_items = pending_list_response.json()["items"]
+    assert any(item["id"] == price_id for item in pending_items)
+
+    rejected_list_response = await client.get(
+        "/api/v1/prices",
+        params={"approval_status": "已驳回"},
+    )
+    assert rejected_list_response.status_code == 200
+    rejected_items = rejected_list_response.json()["items"]
+    assert all(item["id"] != price_id for item in rejected_items)
+
+
+@pytest.mark.asyncio
 async def test_business_user_can_read_effective_regions_but_not_purchase_price(
     client: AsyncClient,
     db_session: AsyncSession,

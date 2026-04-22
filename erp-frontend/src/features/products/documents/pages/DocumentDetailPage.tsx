@@ -4,6 +4,7 @@ import { useAliveController } from 'react-activation'
 import { useNavigate } from 'react-router-dom'
 import { documentsApi } from '../../../../api/documents'
 import { FormSectionCard } from '../../../../components/common'
+import { usePermission } from '../../../../hooks/usePermission'
 import { useUIStore } from '../../../../stores/uiStore'
 
 interface DocumentDetailPageProps {
@@ -120,6 +121,7 @@ export function sanitizeDocumentHtml(contentHtml: string): string {
 
 export default function DocumentDetailPage({ documentId }: DocumentDetailPageProps) {
   const navigate = useNavigate()
+  const permission = usePermission()
   const closeTab = useUIStore((state) => state.closeTab)
   const openTab = useUIStore((state) => state.openTab)
   const { drop } = useAliveController()
@@ -181,9 +183,31 @@ export default function DocumentDetailPage({ documentId }: DocumentDetailPagePro
 
   const document = detailQuery.data
   const safeContentHtml = document.content_html ? sanitizeDocumentHtml(document.content_html) : ''
+  const canEdit = permission.canCreateProduct
 
   return (
     <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <Space>
+          <Button onClick={() => void leaveCurrentTab()}>返回列表</Button>
+          {canEdit ? (
+            <Button
+              type="primary"
+              onClick={() => {
+                openTab({
+                  key: `/products/documents/${document.id}/edit`,
+                  label: '编辑资料',
+                  closable: true,
+                })
+                navigate(`/products/documents/${document.id}/edit`)
+              }}
+            >
+              编辑
+            </Button>
+          ) : null}
+        </Space>
+      </div>
+
       <FormSectionCard title="基础资料">
         <Descriptions column={3} size="small" bordered>
           <Descriptions.Item label="资料名称">{document.name}</Descriptions.Item>
@@ -248,10 +272,6 @@ export default function DocumentDetailPage({ documentId }: DocumentDetailPagePro
           <div style={{ color: 'rgba(0,0,0,0.45)' }}>暂无附件</div>
         )}
       </FormSectionCard>
-
-      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-        <Button onClick={() => void leaveCurrentTab()}>返回列表</Button>
-      </div>
     </div>
   )
 }

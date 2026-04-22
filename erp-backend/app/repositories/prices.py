@@ -54,6 +54,7 @@ class PriceRepository(BaseRepository[Price]):
         page_size: int,
         sku_id: int | None = None,
         level1_category_id: int | None = None,
+        approval_status: str | None = None,
         supplier_name: str | None = None,
         keyword: str | None = None,
     ) -> tuple[list[Price], int]:
@@ -62,6 +63,8 @@ class PriceRepository(BaseRepository[Price]):
             filters.append(self.model.sku_id == sku_id)
         if level1_category_id is not None:
             filters.append(self.model.level1_category_id == level1_category_id)
+        if approval_status:
+            filters.append(self.model.approval_status == approval_status)
         if supplier_name:
             filters.append(self.model.supplier_name == supplier_name)
         if keyword:
