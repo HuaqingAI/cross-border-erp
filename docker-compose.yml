@@ -12,6 +12,10 @@ services:
     build:
       context: ./erp-backend
       dockerfile: Dockerfile
+      args:
+        APT_MIRROR: ${APT_MIRROR:-https://mirrors.tuna.tsinghua.edu.cn/debian}
+        APT_SECURITY_MIRROR: ${APT_SECURITY_MIRROR:-https://mirrors.tuna.tsinghua.edu.cn/debian-security}
+        PIP_INDEX_URL: ${PIP_INDEX_URL:-https://pypi.tuna.tsinghua.edu.cn/simple}
     environment:
       - DATABASE_URL=mysql+aiomysql://root:password@db:3306/erp
       - MINIO_ENDPOINT=minio:9000

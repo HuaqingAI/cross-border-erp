@@ -1,9 +1,13 @@
 # Build stage
+ARG NPM_REGISTRY=https://registry.npmmirror.com
+
 FROM node:20-alpine AS builder
+
+ARG NPM_REGISTRY
 
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci
+RUN npm ci --registry="${NPM_REGISTRY}"
 COPY . .
 RUN npm run build
 

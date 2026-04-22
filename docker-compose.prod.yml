@@ -25,6 +25,8 @@ services:
     build:
       context: ./erp-frontend
       dockerfile: Dockerfile
+      args:
+        NPM_REGISTRY: ${NPM_REGISTRY:-https://registry.npmmirror.com}
     restart: unless-stopped
     networks:
       - erp-network
