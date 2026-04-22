@@ -108,6 +108,7 @@ class PriceService:
         page_size: int,
         sku_id: int | None = None,
         level1_category_id: int | None = None,
+        approval_status: str | None = None,
         supplier_name: str | None = None,
         keyword: str | None = None,
     ):
@@ -116,6 +117,7 @@ class PriceService:
             page_size=page_size,
             sku_id=sku_id,
             level1_category_id=level1_category_id,
+            approval_status=approval_status,
             supplier_name=supplier_name,
             keyword=keyword,
         )

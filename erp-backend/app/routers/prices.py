@@ -9,6 +9,7 @@ from app.models.user import User
 from app.schemas.price import (
     PriceCreate,
     PriceDetail,
+    PriceApprovalStatus,
     PriceListResponse,
     PriceRejectRequest,
     PriceUpdate,
@@ -34,6 +35,7 @@ async def list_prices(
     page_size: int = Query(default=20, ge=1, le=100),
     sku_id: int | None = Query(default=None),
     level1_category_id: int | None = Query(default=None),
+    approval_status: PriceApprovalStatus | None = Query(default=None),
     supplier_name: str | None = Query(default=None),
     keyword: str | None = Query(default=None),
     current_user: User = Depends(require_price_read),
@@ -46,6 +48,7 @@ async def list_prices(
         page_size=page_size,
         sku_id=sku_id,
         level1_category_id=level1_category_id,
+        approval_status=approval_status,
         supplier_name=supplier_name,
         keyword=keyword,
     )

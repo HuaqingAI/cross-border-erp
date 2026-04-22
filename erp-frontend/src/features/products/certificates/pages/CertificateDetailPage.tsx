@@ -5,6 +5,7 @@ import { useAliveController } from 'react-activation'
 import { useNavigate } from 'react-router-dom'
 import { certificatesApi } from '../../../../api/certificates'
 import { FormSectionCard } from '../../../../components/common'
+import { usePermission } from '../../../../hooks/usePermission'
 import { useUIStore } from '../../../../stores/uiStore'
 import type { CertificateValidityStatus } from '../../../../types/product'
 
@@ -27,6 +28,7 @@ function getStatusColor(status: CertificateValidityStatus): string {
 
 export default function CertificateDetailPage({ certificateId }: CertificateDetailPageProps) {
   const navigate = useNavigate()
+  const permission = usePermission()
   const closeTab = useUIStore((state) => state.closeTab)
   const openTab = useUIStore((state) => state.openTab)
   const { drop } = useAliveController()
@@ -87,9 +89,31 @@ export default function CertificateDetailPage({ certificateId }: CertificateDeta
   }
 
   const certificate = detailQuery.data
+  const canEdit = permission.canCreateProduct
 
   return (
     <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <Space>
+          <Button onClick={() => void leaveCurrentTab()}>返回列表</Button>
+          {canEdit ? (
+            <Button
+              type="primary"
+              onClick={() => {
+                openTab({
+                  key: `/products/certificates/${certificate.id}/edit`,
+                  label: '编辑证书',
+                  closable: true,
+                })
+                navigate(`/products/certificates/${certificate.id}/edit`)
+              }}
+            >
+              编辑
+            </Button>
+          ) : null}
+        </Space>
+      </div>
+
       <FormSectionCard title="基础资料">
         <Descriptions column={3} size="small" bordered>
           <Descriptions.Item label="证书名称">{certificate.name}</Descriptions.Item>
@@ -138,10 +162,6 @@ export default function CertificateDetailPage({ certificateId }: CertificateDeta
           )}
         </Space>
       </FormSectionCard>
-
-      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-        <Button onClick={() => void leaveCurrentTab()}>返回列表</Button>
-      </div>
     </div>
   )
 }

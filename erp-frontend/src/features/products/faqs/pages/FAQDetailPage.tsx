@@ -4,6 +4,7 @@ import { useAliveController } from 'react-activation'
 import { useNavigate } from 'react-router-dom'
 import { faqsApi } from '../../../../api/faqs'
 import { FormSectionCard } from '../../../../components/common'
+import { usePermission } from '../../../../hooks/usePermission'
 import { useUIStore } from '../../../../stores/uiStore'
 
 interface FAQDetailPageProps {
@@ -12,6 +13,7 @@ interface FAQDetailPageProps {
 
 export default function FAQDetailPage({ faqId }: FAQDetailPageProps) {
   const navigate = useNavigate()
+  const permission = usePermission()
   const closeTab = useUIStore((state) => state.closeTab)
   const openTab = useUIStore((state) => state.openTab)
   const { drop } = useAliveController()
@@ -71,9 +73,31 @@ export default function FAQDetailPage({ faqId }: FAQDetailPageProps) {
   }
 
   const faq = detailQuery.data
+  const canEdit = permission.canCreateProduct
 
   return (
     <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <Space>
+          <Button onClick={() => void leaveCurrentTab()}>返回列表</Button>
+          {canEdit ? (
+            <Button
+              type="primary"
+              onClick={() => {
+                openTab({
+                  key: `/products/faqs/${faq.id}/edit`,
+                  label: '编辑FAQ',
+                  closable: true,
+                })
+                navigate(`/products/faqs/${faq.id}/edit`)
+              }}
+            >
+              编辑
+            </Button>
+          ) : null}
+        </Space>
+      </div>
+
       <FormSectionCard title="FAQ 信息">
         <Descriptions column={2} size="small" bordered>
           <Descriptions.Item label="作用范围">{faq.scope_summary}</Descriptions.Item>
@@ -102,10 +126,6 @@ export default function FAQDetailPage({ faqId }: FAQDetailPageProps) {
           <div style={{ color: 'rgba(0,0,0,0.45)' }}>暂无附件</div>
         )}
       </FormSectionCard>
-
-      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-        <Button onClick={() => void leaveCurrentTab()}>返回列表</Button>
-      </div>
     </div>
   )
 }

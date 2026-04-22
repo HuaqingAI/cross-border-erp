@@ -9,6 +9,7 @@ export interface Permission {
   canCreateProduct: boolean      // 产品写操作：产品部 + 管理员
   canEditCustomsInfo: boolean    // 报关信息编辑：商务部 + 管理员
   canManagePrice: boolean        // 价格管理写操作：财务部 + 管理员
+  canApprovePrice: boolean       // 价格审批：管理员
   canViewPurchasePrice: boolean  // 采购价可见：产品部 + 财务部 + 管理员
 }
 
@@ -22,6 +23,7 @@ export function usePermission(): Permission {
     canCreateProduct: role === 'product_dept' || role === 'admin',
     canEditCustomsInfo: role === 'business_dept' || role === 'admin',
     canManagePrice: role === 'finance_dept' || role === 'admin',
+    canApprovePrice: role === 'admin',
     canViewPurchasePrice:
       role === 'product_dept' || role === 'finance_dept' || role === 'admin',
   }

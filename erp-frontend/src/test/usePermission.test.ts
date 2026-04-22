@@ -22,6 +22,7 @@ describe('usePermission', () => {
     expect(result.current.canCreateProduct).toBe(true)
     expect(result.current.canEditCustomsInfo).toBe(true)
     expect(result.current.canManagePrice).toBe(true)
+    expect(result.current.canApprovePrice).toBe(true)
     expect(result.current.canViewPurchasePrice).toBe(true)
   })
 
@@ -34,6 +35,7 @@ describe('usePermission', () => {
     expect(result.current.canCreateProduct).toBe(true)
     expect(result.current.canEditCustomsInfo).toBe(false)
     expect(result.current.canManagePrice).toBe(false)
+    expect(result.current.canApprovePrice).toBe(false)
     expect(result.current.canViewPurchasePrice).toBe(true)
   })
 
@@ -46,6 +48,7 @@ describe('usePermission', () => {
     expect(result.current.canCreateProduct).toBe(false)
     expect(result.current.canEditCustomsInfo).toBe(true)
     expect(result.current.canManagePrice).toBe(false)
+    expect(result.current.canApprovePrice).toBe(false)
     expect(result.current.canViewPurchasePrice).toBe(false)
   })
 
@@ -58,6 +61,7 @@ describe('usePermission', () => {
     expect(result.current.canCreateProduct).toBe(false)
     expect(result.current.canEditCustomsInfo).toBe(false)
     expect(result.current.canManagePrice).toBe(true)
+    expect(result.current.canApprovePrice).toBe(false)
     expect(result.current.canViewPurchasePrice).toBe(true)
   })
 
@@ -70,6 +74,7 @@ describe('usePermission', () => {
     expect(result.current.canCreateProduct).toBe(false)
     expect(result.current.canEditCustomsInfo).toBe(false)
     expect(result.current.canManagePrice).toBe(false)
+    expect(result.current.canApprovePrice).toBe(false)
     expect(result.current.canViewPurchasePrice).toBe(false)
   })
 })

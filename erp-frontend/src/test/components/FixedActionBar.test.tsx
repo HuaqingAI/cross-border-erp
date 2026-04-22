@@ -36,4 +36,16 @@ describe('FixedActionBar', () => {
       bottom: '0px',
     })
   })
+
+  it('支持追加扩展操作按钮', () => {
+    render(
+      <FixedActionBar
+        onSave={vi.fn()}
+        onCancel={vi.fn()}
+        extraActions={<button type="button">保存草稿</button>}
+      />,
+    )
+
+    expect(screen.getByRole('button', { name: '保存草稿' })).toBeInTheDocument()
+  })
 })
