@@ -23,6 +23,18 @@ class PriceRepository(BaseRepository[Price]):
         )
         return result.scalar_one_or_none()
 
+    async def get_by_sku_id_with_related(self, sku_id: int) -> Price | None:
+        result = await self.db.execute(
+            select(self.model)
+            .execution_options(populate_existing=True)
+            .options(selectinload(self.model.regions))
+            .where(
+                self.model.sku_id == sku_id,
+                self.model.deleted_at.is_(None),
+            )
+        )
+        return result.scalar_one_or_none()
+
     async def get_with_related(self, price_id: int) -> Price | None:
         result = await self.db.execute(
             select(self.model)
@@ -79,8 +91,13 @@ class PriceRepository(BaseRepository[Price]):
         items = list((await self.db.execute(stmt)).scalars().all())
         return items, total
 
-    async def list_active_regions(self, price_id: int) -> list[PriceRegion]:
-        result = await self.db.execute(
+    async def list_active_regions(
+        self,
+        price_id: int,
+        *,
+        version_stage: str | None = None,
+    ) -> list[PriceRegion]:
+        stmt = (
             select(PriceRegion)
             .where(
                 PriceRegion.price_id == price_id,
@@ -88,6 +105,10 @@ class PriceRepository(BaseRepository[Price]):
             )
             .order_by(PriceRegion.sort_order, PriceRegion.id)
         )
+        if version_stage is not None:
+            stmt = stmt.where(PriceRegion.version_stage == version_stage)
+
+        result = await self.db.execute(stmt)
         return list(result.scalars().all())
 
     async def save_region(self, region: PriceRegion) -> PriceRegion:

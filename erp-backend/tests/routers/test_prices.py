@@ -4,9 +4,11 @@ import uuid
 
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import hash_password
+from app.models.audit_log import AuditLog
 from app.models.user import User, UserRole
 
 
@@ -694,6 +696,409 @@ async def test_patch_price_rejects_switching_to_sku_with_existing_price(
 
     assert response.status_code == 400
     assert response.json()["message"] == "该SKU已存在价格记录"
+
+
+@pytest.mark.asyncio
+async def test_submit_and_approve_price_records_audit_logs(
+    client: AsyncClient,
+    db_session: AsyncSession,
+):
+    await _login_as_role(client, db_session, UserRole.PRODUCT_DEPT)
+    spu = await _create_spu(
+        client,
+        code="SPU-PRICE-008",
+        name="审批平台",
+        prefix="PRICE8",
+        supplier_name="供应商审",
+    )
+    sku = await _create_sku(
+        client,
+        spu_id=spu["id"],
+        code="SKU-PRICE-008",
+        name_zh="审批平台标准版",
+        name_en="Approval Platform",
+    )
+
+    await _login_as_role(client, db_session, UserRole.FINANCE_DEPT)
+    create_response = await client.post(
+        "/api/v1/prices",
+        json=_price_payload(
+            sku_id=sku["id"],
+            regions=[_region(country_code="US", country_name="美国")],
+        ),
+    )
+    price_id = create_response.json()["id"]
+    assert create_response.json()["approval_status"] == "草稿"
+
+    submit_response = await client.post(f"/api/v1/prices/{price_id}/submit")
+    assert submit_response.status_code == 200
+    assert submit_response.json()["approval_status"] == "待审批"
+    assert submit_response.json()["submitted_by"] is not None
+
+    await _login_as_role(client, db_session, UserRole.ADMIN)
+    approve_response = await client.post(f"/api/v1/prices/{price_id}/approve")
+    assert approve_response.status_code == 200
+    assert approve_response.json()["approval_status"] == "已生效"
+    assert approve_response.json()["approved_by"] is not None
+    assert approve_response.json()["regions"][0]["country_code"] == "US"
+
+    result = await db_session.execute(
+        select(AuditLog.action).where(
+            AuditLog.entity_type == "price",
+            AuditLog.entity_id == price_id,
+        )
+    )
+    actions = [row[0] for row in result.all()]
+    assert "submit_price" in actions
+    assert "approve_price" in actions
+
+
+@pytest.mark.asyncio
+async def test_effective_price_keeps_previous_approved_regions_while_pending(
+    client: AsyncClient,
+    db_session: AsyncSession,
+):
+    await _login_as_role(client, db_session, UserRole.PRODUCT_DEPT)
+    spu = await _create_spu(
+        client,
+        code="SPU-PRICE-009",
+        name="生效平台",
+        prefix="PRICE9",
+        supplier_name="供应商效",
+    )
+    sku = await _create_sku(
+        client,
+        spu_id=spu["id"],
+        code="SKU-PRICE-009",
+        name_zh="生效平台标准版",
+        name_en="Effective Platform",
+    )
+
+    await _login_as_role(client, db_session, UserRole.FINANCE_DEPT)
+    create_response = await client.post(
+        "/api/v1/prices",
+        json=_price_payload(
+            sku_id=sku["id"],
+            regions=[_region(country_code="US", country_name="美国", sale_price="210.00", list_price="310.00")],
+        ),
+    )
+    price_id = create_response.json()["id"]
+    await client.post(f"/api/v1/prices/{price_id}/submit")
+
+    await _login_as_role(client, db_session, UserRole.ADMIN)
+    approve_initial = await client.post(f"/api/v1/prices/{price_id}/approve")
+    assert approve_initial.status_code == 200
+
+    await _login_as_role(client, db_session, UserRole.FINANCE_DEPT)
+    patch_response = await client.patch(
+        f"/api/v1/prices/{price_id}",
+        json={
+            "regions": [
+                _region(
+                    country_code="US",
+                    country_name="美国",
+                    sale_price="260.00",
+                    list_price="360.00",
+                )
+            ]
+        },
+    )
+    assert patch_response.status_code == 200
+    assert patch_response.json()["approval_status"] == "草稿"
+    assert patch_response.json()["regions"][0]["sale_price"] == "260.00"
+
+    submit_response = await client.post(f"/api/v1/prices/{price_id}/submit")
+    assert submit_response.status_code == 200
+    assert submit_response.json()["approval_status"] == "待审批"
+
+    await _login_as_role(client, db_session, UserRole.ADMIN)
+    effective_response = await client.get(f"/api/v1/prices/sku/{sku['id']}/effective")
+    assert effective_response.status_code == 200
+    assert effective_response.json()["approval_status"] == "已生效"
+    assert effective_response.json()["rejection_reason"] is None
+    assert effective_response.json()["submitted_by"] is None
+    assert effective_response.json()["approved_by"] is None
+    assert effective_response.json()["rejected_by"] is None
+    assert effective_response.json()["regions"][0]["sale_price"] == "210.00"
+    assert effective_response.json()["regions"][0]["list_price"] == "310.00"
+
+    approve_new = await client.post(f"/api/v1/prices/{price_id}/approve")
+    assert approve_new.status_code == 200
+    assert approve_new.json()["approval_status"] == "已生效"
+
+    effective_after = await client.get(f"/api/v1/prices/sku/{sku['id']}/effective")
+    assert effective_after.status_code == 200
+    assert effective_after.json()["approval_status"] == "已生效"
+    assert effective_after.json()["regions"][0]["sale_price"] == "260.00"
+    assert effective_after.json()["regions"][0]["list_price"] == "360.00"
+
+
+@pytest.mark.asyncio
+async def test_editing_active_price_resets_previous_approval_metadata(
+    client: AsyncClient,
+    db_session: AsyncSession,
+):
+    await _login_as_role(client, db_session, UserRole.PRODUCT_DEPT)
+    spu = await _create_spu(
+        client,
+        code="SPU-PRICE-009D",
+        name="元数据平台",
+        prefix="PRICE9D",
+        supplier_name="供应商元",
+    )
+    sku = await _create_sku(
+        client,
+        spu_id=spu["id"],
+        code="SKU-PRICE-009D",
+        name_zh="元数据平台标准版",
+        name_en="Metadata Platform",
+    )
+
+    await _login_as_role(client, db_session, UserRole.FINANCE_DEPT)
+    create_response = await client.post(
+        "/api/v1/prices",
+        json=_price_payload(
+            sku_id=sku["id"],
+            regions=[_region(country_code="US", country_name="美国", sale_price="200.00", list_price="300.00")],
+        ),
+    )
+    price_id = create_response.json()["id"]
+    await client.post(f"/api/v1/prices/{price_id}/submit")
+
+    await _login_as_role(client, db_session, UserRole.ADMIN)
+    approve_response = await client.post(f"/api/v1/prices/{price_id}/approve")
+    assert approve_response.status_code == 200
+    assert approve_response.json()["approved_by"] is not None
+    assert approve_response.json()["approved_at"] is not None
+
+    await _login_as_role(client, db_session, UserRole.FINANCE_DEPT)
+    patch_response = await client.patch(
+        f"/api/v1/prices/{price_id}",
+        json={
+            "regions": [
+                _region(
+                    country_code="US",
+                    country_name="美国",
+                    sale_price="230.00",
+                    list_price="330.00",
+                )
+            ]
+        },
+    )
+
+    assert patch_response.status_code == 200
+    data = patch_response.json()
+    assert data["approval_status"] == "草稿"
+    assert data["submitted_at"] is None
+    assert data["submitted_by"] is None
+    assert data["approved_at"] is None
+    assert data["approved_by"] is None
+    assert data["rejected_at"] is None
+    assert data["rejected_by"] is None
+    assert data["rejection_reason"] is None
+
+
+@pytest.mark.asyncio
+async def test_business_user_can_read_effective_regions_but_not_purchase_price(
+    client: AsyncClient,
+    db_session: AsyncSession,
+):
+    await _login_as_role(client, db_session, UserRole.PRODUCT_DEPT)
+    spu = await _create_spu(
+        client,
+        code="SPU-PRICE-009C",
+        name="只读生效平台",
+        prefix="PRICE9C",
+        supplier_name="供应商读",
+    )
+    sku = await _create_sku(
+        client,
+        spu_id=spu["id"],
+        code="SKU-PRICE-009C",
+        name_zh="只读生效平台标准版",
+        name_en="Readonly Effective Platform",
+    )
+
+    await _login_as_role(client, db_session, UserRole.FINANCE_DEPT)
+    create_response = await client.post(
+        "/api/v1/prices",
+        json=_price_payload(
+            sku_id=sku["id"],
+            regions=[_region(country_code="DE", country_name="德国", sale_price="220.00", list_price="320.00")],
+        ),
+    )
+    price_id = create_response.json()["id"]
+    await client.post(f"/api/v1/prices/{price_id}/submit")
+
+    await _login_as_role(client, db_session, UserRole.ADMIN)
+    approve_response = await client.post(f"/api/v1/prices/{price_id}/approve")
+    assert approve_response.status_code == 200
+
+    await _login_as_role(client, db_session, UserRole.BUSINESS_DEPT)
+    effective_response = await client.get(f"/api/v1/prices/sku/{sku['id']}/effective")
+    assert effective_response.status_code == 200
+    data = effective_response.json()
+    assert data["approval_status"] == "已生效"
+    assert data["purchase_price"] is None
+    assert len(data["regions"]) == 1
+    assert data["regions"][0]["country_code"] == "DE"
+    assert data["regions"][0]["sale_price"] == "220.00"
+    assert data["regions"][0]["list_price"] == "320.00"
+
+
+@pytest.mark.asyncio
+async def test_effective_price_returns_404_when_no_approved_version_exists(
+    client: AsyncClient,
+    db_session: AsyncSession,
+):
+    await _login_as_role(client, db_session, UserRole.PRODUCT_DEPT)
+    spu = await _create_spu(
+        client,
+        code="SPU-PRICE-009B",
+        name="未生效平台",
+        prefix="PRICE9B",
+        supplier_name="供应商未",
+    )
+    sku = await _create_sku(
+        client,
+        spu_id=spu["id"],
+        code="SKU-PRICE-009B",
+        name_zh="未生效平台标准版",
+        name_en="No Effective Platform",
+    )
+
+    await _login_as_role(client, db_session, UserRole.FINANCE_DEPT)
+    create_response = await client.post(
+        "/api/v1/prices",
+        json=_price_payload(
+            sku_id=sku["id"],
+            regions=[_region(country_code="US", country_name="美国", sale_price="210.00", list_price="310.00")],
+        ),
+    )
+    price_id = create_response.json()["id"]
+
+    draft_effective = await client.get(f"/api/v1/prices/sku/{sku['id']}/effective")
+    assert draft_effective.status_code == 404
+    assert draft_effective.json()["message"] == "暂无已生效价格"
+
+    await client.post(f"/api/v1/prices/{price_id}/submit")
+    await _login_as_role(client, db_session, UserRole.ADMIN)
+    reject_response = await client.post(
+        f"/api/v1/prices/{price_id}/reject",
+        json={"reason": "价格依据不足"},
+    )
+    assert reject_response.status_code == 200
+
+    rejected_effective = await client.get(f"/api/v1/prices/sku/{sku['id']}/effective")
+    assert rejected_effective.status_code == 404
+    assert rejected_effective.json()["message"] == "暂无已生效价格"
+
+
+@pytest.mark.asyncio
+async def test_reject_price_allows_edit_and_resubmit(
+    client: AsyncClient,
+    db_session: AsyncSession,
+):
+    await _login_as_role(client, db_session, UserRole.PRODUCT_DEPT)
+    spu = await _create_spu(
+        client,
+        code="SPU-PRICE-010",
+        name="驳回平台",
+        prefix="PRICE10",
+        supplier_name="供应商驳",
+    )
+    sku = await _create_sku(
+        client,
+        spu_id=spu["id"],
+        code="SKU-PRICE-010",
+        name_zh="驳回平台标准版",
+        name_en="Reject Platform",
+    )
+
+    await _login_as_role(client, db_session, UserRole.FINANCE_DEPT)
+    create_response = await client.post(
+        "/api/v1/prices",
+        json=_price_payload(
+            sku_id=sku["id"],
+            regions=[_region(country_code="DE", country_name="德国", sale_price="180.00", list_price="280.00")],
+        ),
+    )
+    price_id = create_response.json()["id"]
+    await client.post(f"/api/v1/prices/{price_id}/submit")
+
+    await _login_as_role(client, db_session, UserRole.ADMIN)
+    reject_response = await client.post(
+        f"/api/v1/prices/{price_id}/reject",
+        json={"reason": "价格依据不足"},
+    )
+    assert reject_response.status_code == 200
+    assert reject_response.json()["approval_status"] == "已驳回"
+    assert reject_response.json()["rejection_reason"] == "价格依据不足"
+
+    await _login_as_role(client, db_session, UserRole.FINANCE_DEPT)
+    patch_response = await client.patch(
+        f"/api/v1/prices/{price_id}",
+        json={
+            "regions": [
+                _region(
+                    country_code="DE",
+                    country_name="德国",
+                    sale_price="185.00",
+                    list_price="285.00",
+                )
+            ]
+        },
+    )
+    assert patch_response.status_code == 200
+    assert patch_response.json()["approval_status"] == "已驳回"
+    assert patch_response.json()["regions"][0]["sale_price"] == "185.00"
+
+    resubmit_response = await client.post(f"/api/v1/prices/{price_id}/submit")
+    assert resubmit_response.status_code == 200
+    assert resubmit_response.json()["approval_status"] == "待审批"
+    assert resubmit_response.json()["rejection_reason"] is None
+
+
+@pytest.mark.asyncio
+async def test_finance_user_cannot_approve_or_reject_price(
+    client: AsyncClient,
+    db_session: AsyncSession,
+):
+    await _login_as_role(client, db_session, UserRole.PRODUCT_DEPT)
+    spu = await _create_spu(
+        client,
+        code="SPU-PRICE-011",
+        name="权限平台",
+        prefix="PRICE11",
+        supplier_name="供应商权",
+    )
+    sku = await _create_sku(
+        client,
+        spu_id=spu["id"],
+        code="SKU-PRICE-011",
+        name_zh="权限平台标准版",
+        name_en="Permission Platform",
+    )
+
+    await _login_as_role(client, db_session, UserRole.FINANCE_DEPT)
+    create_response = await client.post(
+        "/api/v1/prices",
+        json=_price_payload(
+            sku_id=sku["id"],
+            regions=[_region()],
+        ),
+    )
+    price_id = create_response.json()["id"]
+    await client.post(f"/api/v1/prices/{price_id}/submit")
+
+    approve_response = await client.post(f"/api/v1/prices/{price_id}/approve")
+    reject_response = await client.post(
+        f"/api/v1/prices/{price_id}/reject",
+        json={"reason": "无权限"},
+    )
+
+    assert approve_response.status_code == 403
+    assert reject_response.status_code == 403
 
 
 @pytest.mark.asyncio

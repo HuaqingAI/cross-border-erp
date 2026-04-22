@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import Computed, ForeignKey, Index, Integer, Numeric, String, and_
+from sqlalchemy import Computed, DateTime, ForeignKey, Index, Integer, Numeric, String, and_
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import BaseModel
@@ -46,6 +47,14 @@ class Price(BaseModel):
     supplier_name: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
     product_model: Mapped[str] = mapped_column(String(100), nullable=False)
     product_status: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
+    approval_status: Mapped[str] = mapped_column(String(20), nullable=False, default="草稿", index=True)
+    submitted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    submitted_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True, index=True)
+    approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    approved_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True, index=True)
+    rejected_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    rejected_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True, index=True)
+    rejection_reason: Mapped[str | None] = mapped_column(String(500), nullable=True)
     active_sku_id: Mapped[int | None] = mapped_column(
         Integer,
         Computed("CASE WHEN deleted_at IS NULL THEN sku_id ELSE NULL END"),
@@ -67,14 +76,16 @@ class PriceRegion(BaseModel):
     __tablename__ = "price_regions"
     __table_args__ = (
         Index(
-            "ix_price_regions_price_id_active_country_code",
+            "ix_price_regions_price_id_version_stage_active_country_code",
             "price_id",
+            "version_stage",
             "active_country_code",
             unique=True,
         ),
     )
 
     price_id: Mapped[int] = mapped_column(ForeignKey("prices.id"), nullable=False, index=True)
+    version_stage: Mapped[str] = mapped_column(String(20), nullable=False, default="approved", index=True)
     country_code: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
     country_name: Mapped[str] = mapped_column(String(100), nullable=False)
     currency: Mapped[str] = mapped_column(String(20), nullable=False)
