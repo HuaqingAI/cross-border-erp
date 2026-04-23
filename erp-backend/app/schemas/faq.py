@@ -116,6 +116,15 @@ class FAQListResponse(PaginatedResponse[FAQListItem]):
     pass
 
 
+class FAQListQuery(BaseModel):
+    page: int = Field(default=1, ge=1)
+    page_size: int = Field(default=20, ge=1, le=100)
+    spu_id: int | None = Field(default=None, gt=0)
+    question_type: str | None = None
+    keyword: str | None = None
+    aggregate_spu_id: int | None = Field(default=None, gt=0)
+
+
 class FAQDetail(BaseModel):
     id: int
     spu_id: int | None = None

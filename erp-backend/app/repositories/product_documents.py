@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import and_, exists, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -47,6 +47,8 @@ class ProductDocumentRepository(BaseRepository[ProductDocument]):
         document_type: str | None = None,
         ownership_type: str | None = None,
         keyword: str | None = None,
+        aggregate_sku_id: int | None = None,
+        aggregate_category_ids: list[int] | None = None,
     ) -> tuple[list[ProductDocument], int]:
         filters = [self.model.deleted_at.is_(None)]
         if document_type:
@@ -56,6 +58,39 @@ class ProductDocumentRepository(BaseRepository[ProductDocument]):
         if keyword:
             like_value = f"%{keyword}%"
             filters.append(self.model.name.like(like_value))
+        if aggregate_sku_id is not None or aggregate_category_ids:
+            aggregate_filters = [self.model.ownership_type == "通用"]
+            if aggregate_sku_id is not None:
+                aggregate_filters.append(
+                    and_(
+                        self.model.ownership_type == "指定SKU",
+                        exists(
+                            select(1).where(
+                                ProductDocumentSKUAssignment.product_document_id
+                                == self.model.id,
+                                ProductDocumentSKUAssignment.sku_id == aggregate_sku_id,
+                                ProductDocumentSKUAssignment.deleted_at.is_(None),
+                            )
+                        ),
+                    )
+                )
+            if aggregate_category_ids:
+                aggregate_filters.append(
+                    and_(
+                        self.model.ownership_type == "按分类",
+                        exists(
+                            select(1).where(
+                                ProductDocumentCategoryAssignment.product_document_id
+                                == self.model.id,
+                                ProductDocumentCategoryAssignment.category_id.in_(
+                                    aggregate_category_ids
+                                ),
+                                ProductDocumentCategoryAssignment.deleted_at.is_(None),
+                            )
+                        ),
+                    )
+                )
+            filters.append(or_(*aggregate_filters))
 
         total_stmt = select(func.count()).select_from(self.model).where(*filters)
         total = (await self.db.execute(total_stmt)).scalar_one()

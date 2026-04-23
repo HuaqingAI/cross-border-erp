@@ -84,6 +84,8 @@ class CertificateService:
         ownership_type: str | None = None,
         validity_status: str | None = None,
         keyword: str | None = None,
+        aggregate_spu_id: int | None = None,
+        aggregate_category_ids: list[int] | None = None,
     ):
         del current_user
         items, total = await self.repo.list_certificates(
@@ -93,6 +95,8 @@ class CertificateService:
             ownership_type=ownership_type,
             validity_status=validity_status,
             keyword=keyword,
+            aggregate_spu_id=aggregate_spu_id,
+            aggregate_category_ids=self._normalize_ids(aggregate_category_ids),
         )
         return CertificateListResponse.model_validate(
             {

@@ -93,6 +93,8 @@ class ProductDocumentService:
         document_type: str | None = None,
         ownership_type: str | None = None,
         keyword: str | None = None,
+        aggregate_sku_id: int | None = None,
+        aggregate_category_ids: list[int] | None = None,
     ):
         del current_user
         items, total = await self.repo.list_product_documents(
@@ -101,6 +103,8 @@ class ProductDocumentService:
             document_type=document_type,
             ownership_type=ownership_type,
             keyword=keyword,
+            aggregate_sku_id=aggregate_sku_id,
+            aggregate_category_ids=self._normalize_ids(aggregate_category_ids),
         )
         return ProductDocumentListResponse.model_validate(
             {

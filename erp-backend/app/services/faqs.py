@@ -57,16 +57,20 @@ class FAQService:
         spu_id: int | None = None,
         question_type: str | None = None,
         keyword: str | None = None,
+        aggregate_spu_id: int | None = None,
     ):
         del current_user
         if spu_id is not None:
             await self._get_spu_or_none(spu_id)
+        if aggregate_spu_id is not None:
+            await self._get_spu_or_none(aggregate_spu_id)
         items, total = await self.repo.list_faqs(
             page=page,
             page_size=page_size,
             spu_id=spu_id,
             question_type=question_type,
             keyword=keyword,
+            aggregate_spu_id=aggregate_spu_id,
         )
         return FAQListResponse.model_validate(
             {

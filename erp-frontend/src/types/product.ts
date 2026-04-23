@@ -381,6 +381,8 @@ export interface CertificateListQuery {
   ownership_type?: CertificateOwnershipType
   validity_status?: CertificateValidityStatus
   keyword?: string
+  aggregate_spu_id?: number
+  aggregate_category_ids?: number[]
 }
 
 export interface CertificateMutationPayload {
@@ -461,6 +463,8 @@ export interface DocumentListQuery {
   document_type?: string
   ownership_type?: DocumentOwnershipType
   keyword?: string
+  aggregate_sku_id?: number
+  aggregate_category_ids?: number[]
 }
 
 export interface DocumentMutationPayload {
@@ -512,6 +516,7 @@ export interface FaqListQuery {
   spu_id?: number
   question_type?: string
   keyword?: string
+  aggregate_spu_id?: number
 }
 
 export interface FaqMutationPayload {

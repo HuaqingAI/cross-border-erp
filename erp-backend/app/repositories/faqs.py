@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -31,10 +31,18 @@ class FAQRepository(BaseRepository[FAQ]):
         spu_id: int | None = None,
         question_type: str | None = None,
         keyword: str | None = None,
+        aggregate_spu_id: int | None = None,
     ) -> tuple[list[FAQ], int]:
         filters = [self.model.deleted_at.is_(None)]
         if spu_id is not None:
             filters.append(self.model.spu_id == spu_id)
+        if aggregate_spu_id is not None:
+            filters.append(
+                or_(
+                    self.model.spu_id == aggregate_spu_id,
+                    self.model.spu_id.is_(None),
+                )
+            )
         if question_type:
             filters.append(self.model.question_type == question_type)
         if keyword:

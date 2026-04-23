@@ -127,6 +127,16 @@ class ProductDocumentListResponse(PaginatedResponse[ProductDocumentListItem]):
     pass
 
 
+class ProductDocumentListQuery(BaseModel):
+    page: int = Field(default=1, ge=1)
+    page_size: int = Field(default=20, ge=1, le=100)
+    document_type: str | None = None
+    ownership_type: ProductDocumentOwnershipType | None = None
+    keyword: str | None = None
+    aggregate_sku_id: int | None = Field(default=None, gt=0)
+    aggregate_category_ids: list[int] = Field(default_factory=list)
+
+
 class ProductDocumentDetail(BaseModel):
     id: int
     name: str
