@@ -7,6 +7,7 @@ import userEvent from '@testing-library/user-event'
 import FAQListPage, {
   buildQueryParams,
 } from '../../features/products/faqs/pages/FAQListPage'
+import { enumsApi } from '../../api/enums'
 import { faqsApi } from '../../api/faqs'
 import { spusApi } from '../../api/spus'
 import { useAuthStore } from '../../stores/authStore'
@@ -51,6 +52,12 @@ vi.mock('../../api/faqs', () => ({
   },
 }))
 
+vi.mock('../../api/enums', () => ({
+  enumsApi: {
+    list: vi.fn(),
+  },
+}))
+
 vi.mock('../../api/spus', () => ({
   spusApi: {
     list: vi.fn(),
@@ -75,6 +82,12 @@ const items: FaqListItem[] = [
 ]
 
 beforeAll(() => {
+  const originalGetComputedStyle = window.getComputedStyle.bind(window)
+  Object.defineProperty(window, 'getComputedStyle', {
+    writable: true,
+    value: (element: Element) => originalGetComputedStyle(element),
+  })
+
   Object.defineProperty(window, 'matchMedia', {
     writable: true,
     value: (query: string) => ({
@@ -108,6 +121,20 @@ beforeEach(() => {
     page: 1,
     page_size: 20,
   } as PaginatedResult<FaqListItem>)
+  vi.mocked(enumsApi.list).mockResolvedValue([
+    {
+      id: 1,
+      enum_group: 'faq_question_type',
+      enum_key: '售后',
+      enum_value: '售后服务',
+      description: null,
+      sort_order: 1,
+      is_enabled: true,
+      is_protected: false,
+      created_at: '2026-04-23T00:00:00Z',
+      updated_at: '2026-04-23T00:00:00Z',
+    },
+  ])
 
   vi.mocked(spusApi.list).mockResolvedValue({
     items: [
@@ -189,6 +216,7 @@ describe('FAQListPage', () => {
 
     expect(await screen.findByText('支持蓝牙吗？')).toBeInTheDocument()
     expect(screen.getByText('全局')).toBeInTheDocument()
+    expect(screen.getByText('售后服务')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /新\s*增/ })).toBeInTheDocument()
   })
 

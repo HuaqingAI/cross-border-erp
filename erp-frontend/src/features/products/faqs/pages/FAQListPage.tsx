@@ -7,6 +7,7 @@ import { faqsApi } from '../../../../api/faqs'
 import { spusApi } from '../../../../api/spus'
 import { FilterCard, PaginationBar } from '../../../../components/common'
 import { usePermission } from '../../../../hooks/usePermission'
+import { buildEnumOptions, resolveEnumLabel, useSystemEnumItems } from '../../../../hooks/useSystemEnums'
 import { useUIStore } from '../../../../stores/uiStore'
 import type { FaqListItem, FaqListQuery } from '../../../../types/product'
 
@@ -15,11 +16,6 @@ interface FilterValues {
   question_type?: string
   keyword?: string
 }
-
-const QUESTION_TYPE_OPTIONS = ['售后', '安装', '使用', '配置', '其他'].map((value) => ({
-  label: value,
-  value,
-}))
 
 export function buildQueryParams(values: FilterValues, pageSize: number): FaqListQuery {
   return {
@@ -65,6 +61,7 @@ export default function FAQListPage() {
     page: 1,
     page_size: 20,
   })
+  const questionTypeQuery = useSystemEnumItems('faq_question_type')
 
   const faqsQuery = useQuery({
     queryKey: ['faqs-list', queryParams],
@@ -147,7 +144,7 @@ export default function FAQListPage() {
       dataIndex: 'question_type',
       key: 'question_type',
       width: 140,
-      render: (value?: string | null) => value || '—',
+      render: (value?: string | null) => resolveEnumLabel(questionTypeQuery.data, value),
     },
     {
       title: '创建时间',
@@ -231,7 +228,12 @@ export default function FAQListPage() {
               />
             </Form.Item>
             <Form.Item label="问题类型" name="question_type">
-              <Select allowClear placeholder="请选择问题类型" options={QUESTION_TYPE_OPTIONS} />
+              <Select
+                allowClear
+                placeholder="请选择问题类型"
+                options={buildEnumOptions(questionTypeQuery.data)}
+                loading={questionTypeQuery.isLoading}
+              />
             </Form.Item>
             <Form.Item label="关键词" name="keyword">
               <Input placeholder="请输入问题关键词" />

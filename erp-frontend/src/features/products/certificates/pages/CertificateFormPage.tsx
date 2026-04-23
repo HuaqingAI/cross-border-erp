@@ -24,6 +24,7 @@ import { spusApi } from '../../../../api/spus'
 import { FixedActionBar, FormSectionCard } from '../../../../components/common'
 import FormGrid from '../../../../components/form/FormGrid'
 import { usePermission } from '../../../../hooks/usePermission'
+import { buildEnumOptions, useSystemEnumItems } from '../../../../hooks/useSystemEnums'
 import { useUIStore } from '../../../../stores/uiStore'
 import type {
   CategoryTreeNode,
@@ -73,15 +74,6 @@ interface PersistCertificateOptions {
   uploadSelectedFile: (file: File) => Promise<{ fileKey: string; filename: string; url: string }>
   deleteUploadedObject: (objectKey: string) => Promise<void>
 }
-
-const CERTIFICATE_TYPE_OPTIONS = [
-  'CE',
-  'FDA',
-  'ISO13485',
-  'IEC检测报告',
-  'DOC',
-  '其他',
-].map((value) => ({ label: value, value }))
 
 const OWNERSHIP_OPTIONS: Array<{ label: CertificateOwnershipType; value: CertificateOwnershipType }> = [
   { label: '通用', value: '通用' },
@@ -322,6 +314,7 @@ export default function CertificateFormPage({
     queryKey: ['categories-tree'],
     queryFn: categoriesApi.getTree,
   })
+  const certificateTypeQuery = useSystemEnumItems('certificate_type')
 
   const detailQuery = useQuery({
     queryKey: ['certificate-detail', numericCertificateId],
@@ -370,6 +363,12 @@ export default function CertificateFormPage({
     }
     return Array.from(options.entries()).map(([value, label]) => ({ value, label }))
   }, [detailQuery.data?.spus, spuOptionsQuery.data?.items])
+  const certificateTypeOptions = buildEnumOptions(
+    certificateTypeQuery.data,
+    detailQuery.data?.certificate_type
+      ? [{ value: detailQuery.data.certificate_type }]
+      : [],
+  )
 
   const ownershipType = Form.useWatch('ownership_type', form)
 
@@ -597,7 +596,8 @@ export default function CertificateFormPage({
                 <Select
                   showSearch
                   placeholder="请选择证书类型"
-                  options={CERTIFICATE_TYPE_OPTIONS}
+                  options={certificateTypeOptions}
+                  loading={certificateTypeQuery.isLoading}
                   optionFilterProp="label"
                 />
               </Form.Item>

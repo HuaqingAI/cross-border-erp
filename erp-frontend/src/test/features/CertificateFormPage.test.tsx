@@ -6,6 +6,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import dayjs from 'dayjs'
 import { categoriesApi } from '../../api/categories'
 import { certificatesApi } from '../../api/certificates'
+import { enumsApi } from '../../api/enums'
 import { filesApi } from '../../api/files'
 import { spusApi } from '../../api/spus'
 import CertificateFormPage, {
@@ -46,6 +47,12 @@ vi.mock('../../api/certificates', () => ({
     create: vi.fn(),
     update: vi.fn(),
     remove: vi.fn(),
+  },
+}))
+
+vi.mock('../../api/enums', () => ({
+  enumsApi: {
+    list: vi.fn(),
   },
 }))
 
@@ -152,6 +159,20 @@ beforeEach(() => {
 
   vi.mocked(categoriesApi.getTree).mockResolvedValue(categoryTree)
   vi.mocked(certificatesApi.getById).mockResolvedValue(certificateDetail)
+  vi.mocked(enumsApi.list).mockResolvedValue([
+    {
+      id: 1,
+      enum_group: 'certificate_type',
+      enum_key: 'CE',
+      enum_value: 'CE认证',
+      description: null,
+      sort_order: 1,
+      is_enabled: true,
+      is_protected: false,
+      created_at: '2026-04-23T00:00:00Z',
+      updated_at: '2026-04-23T00:00:00Z',
+    },
+  ])
   vi.mocked(spusApi.list).mockResolvedValue({
     items: [
       {

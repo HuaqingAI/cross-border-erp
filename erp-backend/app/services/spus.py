@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+
 from app.core.permissions import can_view_purchase_price
 from app.core.exceptions import BusinessError
 from app.models.spu import SPU, SPUInvoiceInfo
@@ -23,6 +25,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class SPUService:
+    COUNTRY_REGION_CODE_PATTERN = re.compile(r"^(?:[A-Z]{2}|GLOBAL)$")
+
     def __init__(self, db: AsyncSession):
         self.db = db
         self.repo = SPURepository(db)
@@ -37,6 +41,7 @@ class SPUService:
             data.level3_category_id,
         )
         self._validate_invoice_infos(data.invoice_infos)
+        restricted_countries = self._normalize_countries(data.restricted_countries)
 
         spu = SPU(
             code=data.code,
@@ -46,7 +51,7 @@ class SPUService:
             level3_category_id=data.level3_category_id,
             customer_warranty_months=data.customer_warranty_months,
             unit=data.unit,
-            restricted_countries=data.restricted_countries,
+            restricted_countries=restricted_countries,
             supplier_name=data.supplier_name,
             manufacturer_model=data.manufacturer_model,
             purchase_price=data.purchase_price,
@@ -112,6 +117,12 @@ class SPUService:
         if data.invoice_infos is not None:
             self._validate_invoice_infos(data.invoice_infos)
 
+        restricted_countries = (
+            self._normalize_countries(data.restricted_countries)
+            if data.restricted_countries is not None
+            else None
+        )
+
         inherited_fields_changed = (
             new_level1_id != spu.level1_category_id
             or new_level2_id != spu.level2_category_id
@@ -125,8 +136,8 @@ class SPUService:
                 and data.customer_warranty_months != spu.customer_warranty_months
             )
             or (
-                data.restricted_countries is not None
-                and data.restricted_countries != spu.restricted_countries
+                restricted_countries is not None
+                and restricted_countries != spu.restricted_countries
             )
         )
 
@@ -144,8 +155,8 @@ class SPUService:
             spu.customer_warranty_months = data.customer_warranty_months
         if data.unit is not None:
             spu.unit = data.unit
-        if data.restricted_countries is not None:
-            spu.restricted_countries = data.restricted_countries
+        if restricted_countries is not None:
+            spu.restricted_countries = restricted_countries
         if data.manufacturer_model is not None:
             spu.manufacturer_model = data.manufacturer_model
         if "purchase_price" in data.model_fields_set:
@@ -193,6 +204,21 @@ class SPUService:
     def _validate_invoice_infos(self, invoice_infos: list[SPUInvoiceInfoPayload]) -> None:
         if not invoice_infos:
             raise BusinessError("开票信息至少需要一条")
+
+    def _normalize_countries(self, values: list[str] | None) -> list[str]:
+        if not values:
+            return []
+        result: list[str] = []
+        seen: set[str] = set()
+        for value in values:
+            normalized = value.strip().upper()
+            if not normalized or normalized in seen:
+                continue
+            if not self.COUNTRY_REGION_CODE_PATTERN.fullmatch(normalized):
+                raise BusinessError("禁止经营国家必须为标准编码（如 CN、US、GLOBAL）")
+            seen.add(normalized)
+            result.append(normalized)
+        return result
 
     async def _replace_invoice_infos(
         self,

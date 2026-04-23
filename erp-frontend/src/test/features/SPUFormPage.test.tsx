@@ -5,6 +5,7 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { categoriesApi } from '../../api/categories'
+import { enumsApi } from '../../api/enums'
 import { spusApi } from '../../api/spus'
 import SPUFormPage from '../../features/products/spus/pages/SPUFormPage'
 import { useUIStore } from '../../stores/uiStore'
@@ -30,6 +31,12 @@ vi.mock('react-activation', () => ({
 vi.mock('../../api/categories', () => ({
   categoriesApi: {
     getTree: vi.fn(),
+  },
+}))
+
+vi.mock('../../api/enums', () => ({
+  enumsApi: {
+    list: vi.fn(),
   },
 }))
 
@@ -133,6 +140,38 @@ beforeEach(() => {
   vi.spyOn(window.console, 'error').mockImplementation(() => {})
 
   vi.mocked(categoriesApi.getTree).mockResolvedValue(categoryTree)
+  vi.mocked(enumsApi.list).mockImplementation(async (params) => {
+    if (params.group === 'unit') {
+      return [
+        {
+          id: 1,
+          enum_group: 'unit',
+          enum_key: '台',
+          enum_value: '台',
+          description: null,
+          sort_order: 1,
+          is_enabled: true,
+          is_protected: false,
+          created_at: '2026-04-23T00:00:00Z',
+          updated_at: '2026-04-23T00:00:00Z',
+        },
+      ]
+    }
+    return [
+      {
+        id: 2,
+        enum_group: 'country_region',
+        enum_key: 'US',
+        enum_value: '美国',
+        description: null,
+        sort_order: 1,
+        is_enabled: true,
+        is_protected: false,
+        created_at: '2026-04-23T00:00:00Z',
+        updated_at: '2026-04-23T00:00:00Z',
+      },
+    ]
+  })
   vi.mocked(spusApi.getById).mockResolvedValue(spuDetail)
 
   useUIStore.setState({

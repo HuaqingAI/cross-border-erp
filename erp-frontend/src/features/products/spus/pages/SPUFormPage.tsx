@@ -8,6 +8,7 @@ import { spusApi } from '../../../../api/spus'
 import { FixedActionBar, FormSectionCard } from '../../../../components/common'
 import FormGrid from '../../../../components/form/FormGrid'
 import type { DefaultOptionType } from 'antd/es/cascader'
+import { buildEnumOptions, useSystemEnumItems } from '../../../../hooks/useSystemEnums'
 import { useUIStore } from '../../../../stores/uiStore'
 import type { CategoryTreeNode, Spu, SpuMutationPayload } from '../../../../types/product'
 
@@ -82,7 +83,9 @@ function toPayload(values: SpuFormValues): SpuMutationPayload {
     level3_category_id: values.category_path[2],
     customer_warranty_months: values.customer_warranty_months,
     unit: values.unit.trim(),
-    restricted_countries: restrictedCountries.filter(Boolean),
+    restricted_countries: restrictedCountries
+      .map((value) => value.trim().toUpperCase())
+      .filter(Boolean),
     supplier_name: values.supplier_name?.trim() ?? '',
     manufacturer_model: values.manufacturer_model.trim(),
     purchase_price: values.purchase_price ?? null,
@@ -178,12 +181,27 @@ export default function SPUFormPage({ mode, spuId }: SPUFormPageProps) {
     queryKey: ['categories-tree'],
     queryFn: categoriesApi.getTree,
   })
+  const unitQuery = useSystemEnumItems('unit')
+  const countryRegionQuery = useSystemEnumItems('country_region')
   const detailQuery = useQuery({
     queryKey: ['spu-detail', numericSpuId],
     queryFn: () => spusApi.getById(numericSpuId as number),
     enabled: isEditMode,
   })
   const categoryOptions = toCategoryOptions(categoriesQuery.data ?? [])
+  const unitOptions = buildEnumOptions(
+    unitQuery.data,
+    [
+      detailQuery.data?.unit ? { value: detailQuery.data.unit } : null,
+      ...(detailQuery.data?.invoice_infos ?? []).map((item) => ({
+        value: item.invoice_unit,
+      })),
+    ].filter((item): item is { value: string } => item !== null),
+  )
+  const countryRegionOptions = buildEnumOptions(
+    countryRegionQuery.data,
+    (detailQuery.data?.restricted_countries ?? []).map((value) => ({ value })),
+  )
 
   const formInitialValues = useMemo(
     () => (isEditMode && detailQuery.data ? toFormValues(detailQuery.data) : DEFAULT_FORM_VALUES),
@@ -349,15 +367,24 @@ export default function SPUFormPage({ mode, spuId }: SPUFormPageProps) {
             >
               <InputNumber min={0} style={{ width: '100%' }} placeholder="请输入客户质保期" />
             </Form.Item>
-            <Form.Item label="单位" name="unit" rules={[{ required: true, message: '请输入单位' }]}>
-              <Input placeholder="请输入单位，如：台、个、套" />
+            <Form.Item label="单位" name="unit" rules={[{ required: true, message: '请选择单位' }]}>
+              <Select
+                showSearch
+                placeholder="请选择单位"
+                options={unitOptions}
+                loading={unitQuery.isLoading}
+                optionFilterProp="label"
+              />
             </Form.Item>
             <Form.Item label="禁止经营国家" name="restricted_countries">
               <Select
-                mode="tags"
-                open={false}
-                tokenSeparators={[',']}
-                placeholder="请输入国家/地区代码，回车确认"
+                mode="multiple"
+                allowClear
+                showSearch
+                placeholder="请选择禁止经营国家"
+                options={countryRegionOptions}
+                loading={countryRegionQuery.isLoading}
+                optionFilterProp="label"
               />
             </Form.Item>
           </FormGrid>
@@ -476,7 +503,13 @@ export default function SPUFormPage({ mode, spuId }: SPUFormPageProps) {
                           style={{ marginBottom: 0 }}
                           rules={[{ required: true, message: '请输入开票单位' }]}
                         >
-                          <Input placeholder="请输入开票单位" />
+                          <Select
+                            showSearch
+                            placeholder="请选择开票单位"
+                            options={unitOptions}
+                            loading={unitQuery.isLoading}
+                            optionFilterProp="label"
+                          />
                         </Form.Item>
                       </div>
                       <div style={{ padding: '14px 16px 8px' }}>

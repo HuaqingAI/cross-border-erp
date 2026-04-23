@@ -8,6 +8,7 @@ import CertificateListPage, {
   buildQueryParams,
 } from '../../features/products/certificates/pages/CertificateListPage'
 import { certificatesApi } from '../../api/certificates'
+import { enumsApi } from '../../api/enums'
 import { useAuthStore } from '../../stores/authStore'
 import { useUIStore } from '../../stores/uiStore'
 import type { CertificateListItem, PaginatedResult } from '../../types/product'
@@ -26,6 +27,12 @@ vi.mock('../../api/certificates', () => ({
   certificatesApi: {
     list: vi.fn(),
     remove: vi.fn(),
+  },
+}))
+
+vi.mock('../../api/enums', () => ({
+  enumsApi: {
+    list: vi.fn(),
   },
 }))
 
@@ -87,6 +94,20 @@ beforeEach(() => {
     page: 1,
     page_size: 20,
   } as PaginatedResult<CertificateListItem>)
+  vi.mocked(enumsApi.list).mockResolvedValue([
+    {
+      id: 1,
+      enum_group: 'certificate_type',
+      enum_key: 'CE',
+      enum_value: 'CE认证',
+      description: null,
+      sort_order: 1,
+      is_enabled: true,
+      is_protected: false,
+      created_at: '2026-04-23T00:00:00Z',
+      updated_at: '2026-04-23T00:00:00Z',
+    },
+  ])
 
   useUIStore.setState({
     tabs: [],
@@ -146,6 +167,7 @@ describe('CertificateListPage', () => {
 
     expect(await screen.findByText('CE证书')).toBeInTheDocument()
     expect(screen.getByText('CERT-001')).toBeInTheDocument()
+    expect(screen.getByText('CE认证')).toBeInTheDocument()
     expect(screen.getByText('即将过期')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /新\s*增/ })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /查\s*看/ })).toBeInTheDocument()

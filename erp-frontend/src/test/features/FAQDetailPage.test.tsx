@@ -4,6 +4,7 @@ import zhCN from 'antd/locale/zh_CN'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import FAQDetailPage from '../../features/products/faqs/pages/FAQDetailPage'
+import { enumsApi } from '../../api/enums'
 import { faqsApi } from '../../api/faqs'
 import type { Faq } from '../../types/product'
 
@@ -27,6 +28,12 @@ vi.mock('react-activation', () => ({
 vi.mock('../../api/faqs', () => ({
   faqsApi: {
     getById: vi.fn(),
+  },
+}))
+
+vi.mock('../../api/enums', () => ({
+  enumsApi: {
+    list: vi.fn(),
   },
 }))
 
@@ -67,6 +74,20 @@ beforeEach(() => {
   drop.mockClear()
   vi.clearAllMocks()
   vi.mocked(faqsApi.getById).mockResolvedValue(faqDetail)
+  vi.mocked(enumsApi.list).mockResolvedValue([
+    {
+      id: 1,
+      enum_group: 'faq_question_type',
+      enum_key: '售后',
+      enum_value: '售后服务',
+      description: null,
+      sort_order: 1,
+      is_enabled: true,
+      is_protected: false,
+      created_at: '2026-04-23T00:00:00Z',
+      updated_at: '2026-04-23T00:00:00Z',
+    },
+  ])
 })
 
 function createQueryClient() {
@@ -88,6 +109,7 @@ describe('FAQDetailPage', () => {
     )
 
     expect(await screen.findByText('如何开机？')).toBeInTheDocument()
+    expect(screen.getByText('售后服务')).toBeInTheDocument()
     expect(screen.getByText('按电源键')).toBeInTheDocument()
     expect(screen.getByText('SPU001 | 超声平台')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: '查看附件' })).toBeInTheDocument()

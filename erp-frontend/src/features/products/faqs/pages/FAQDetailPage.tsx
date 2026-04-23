@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import { faqsApi } from '../../../../api/faqs'
 import { FormSectionCard } from '../../../../components/common'
 import { usePermission } from '../../../../hooks/usePermission'
+import { resolveEnumLabel, useSystemEnumItems } from '../../../../hooks/useSystemEnums'
 import { useUIStore } from '../../../../stores/uiStore'
 
 interface FAQDetailPageProps {
@@ -33,6 +34,7 @@ export default function FAQDetailPage({ faqId }: FAQDetailPageProps) {
     queryFn: () => faqsApi.getById(numericFaqId as number),
     enabled: numericFaqId !== null,
   })
+  const questionTypeQuery = useSystemEnumItems('faq_question_type', numericFaqId !== null)
 
   if (numericFaqId === null) {
     return (
@@ -101,7 +103,9 @@ export default function FAQDetailPage({ faqId }: FAQDetailPageProps) {
       <FormSectionCard title="FAQ 信息">
         <Descriptions column={2} size="small" bordered>
           <Descriptions.Item label="作用范围">{faq.scope_summary}</Descriptions.Item>
-          <Descriptions.Item label="问题类型">{faq.question_type || '—'}</Descriptions.Item>
+          <Descriptions.Item label="问题类型">
+            {resolveEnumLabel(questionTypeQuery.data, faq.question_type)}
+          </Descriptions.Item>
           <Descriptions.Item label="SPU" span={2}>
             {faq.spu_code && faq.spu_name ? `${faq.spu_code} | ${faq.spu_name}` : '全局'}
           </Descriptions.Item>

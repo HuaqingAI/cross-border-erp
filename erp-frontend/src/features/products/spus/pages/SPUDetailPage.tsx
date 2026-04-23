@@ -11,6 +11,7 @@ import { faqsApi } from '../../../../api/faqs'
 import { skusApi } from '../../../../api/skus'
 import { FormSectionCard } from '../../../../components/common'
 import { usePermission } from '../../../../hooks/usePermission'
+import { resolveEnumLabel, useSystemEnumItems } from '../../../../hooks/useSystemEnums'
 import { useUIStore } from '../../../../stores/uiStore'
 import { spusApi } from '../../../../api/spus'
 import type {
@@ -245,6 +246,10 @@ export default function SPUDetailPage({ spuId }: SPUDetailPageProps) {
     },
     enabled: detailQuery.data !== undefined,
   })
+  const unitQuery = useSystemEnumItems('unit', numericSpuId !== null)
+  const countryRegionQuery = useSystemEnumItems('country_region', numericSpuId !== null)
+  const certificateTypeQuery = useSystemEnumItems('certificate_type', numericSpuId !== null)
+  const questionTypeQuery = useSystemEnumItems('faq_question_type', numericSpuId !== null)
 
   const openRouteTab = (path: string, label: string) => {
     openTab({ key: path, label, closable: true })
@@ -308,6 +313,7 @@ export default function SPUDetailPage({ spuId }: SPUDetailPageProps) {
       dataIndex: 'certificate_type',
       key: 'certificate_type',
       width: 140,
+      render: (value: string) => resolveEnumLabel(certificateTypeQuery.data, value),
     },
     {
       title: '归属范围',
@@ -347,7 +353,7 @@ export default function SPUDetailPage({ spuId }: SPUDetailPageProps) {
       dataIndex: 'question_type',
       key: 'question_type',
       width: 140,
-      render: (value?: string | null) => value || '—',
+      render: (value?: string | null) => resolveEnumLabel(questionTypeQuery.data, value),
     },
     {
       title: '作用范围',
@@ -368,6 +374,7 @@ export default function SPUDetailPage({ spuId }: SPUDetailPageProps) {
       dataIndex: 'invoice_unit',
       key: 'invoice_unit',
       width: 180,
+      render: (value: string) => resolveEnumLabel(unitQuery.data, value),
     },
     {
       title: '开票型号',
@@ -425,6 +432,11 @@ export default function SPUDetailPage({ spuId }: SPUDetailPageProps) {
   const categoryPath = categoriesQuery.isError
     ? formatCategoryPathFallback(spu)
     : formatCategoryPath(spu, categoriesQuery.data ?? [])
+  const restrictedCountriesText = spu.restricted_countries?.length
+    ? spu.restricted_countries
+        .map((value) => resolveEnumLabel(countryRegionQuery.data, value))
+        .join('，')
+    : '—'
 
   return (
     <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -459,9 +471,9 @@ export default function SPUDetailPage({ spuId }: SPUDetailPageProps) {
           <Descriptions.Item label="客户质保期(月)">
             {spu.customer_warranty_months}
           </Descriptions.Item>
-          <Descriptions.Item label="单位">{spu.unit}</Descriptions.Item>
+          <Descriptions.Item label="单位">{resolveEnumLabel(unitQuery.data, spu.unit)}</Descriptions.Item>
           <Descriptions.Item label="禁止经营国家">
-            {spu.restricted_countries?.length ? spu.restricted_countries.join('，') : '—'}
+            {restrictedCountriesText}
           </Descriptions.Item>
           <Descriptions.Item label="创建时间">{formatDateTime(spu.created_at)}</Descriptions.Item>
           <Descriptions.Item label="更新时间">{formatDateTime(spu.updated_at)}</Descriptions.Item>
