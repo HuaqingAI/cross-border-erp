@@ -36,6 +36,8 @@ async def list_product_documents(
     document_type: str | None = Query(default=None),
     ownership_type: ProductDocumentOwnershipType | None = Query(default=None),
     keyword: str | None = Query(default=None),
+    aggregate_sku_id: int | None = Query(default=None, gt=0),
+    aggregate_category_ids: list[int] = Query(default_factory=list),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -47,6 +49,8 @@ async def list_product_documents(
         document_type=document_type,
         ownership_type=ownership_type.value if ownership_type else None,
         keyword=keyword,
+        aggregate_sku_id=aggregate_sku_id,
+        aggregate_category_ids=aggregate_category_ids,
     )
 
 

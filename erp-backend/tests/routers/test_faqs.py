@@ -215,6 +215,38 @@ async def test_faq_spu_must_exist(
 
 
 @pytest.mark.asyncio
+async def test_list_faqs_supports_aggregate_spu_filter(
+    client: AsyncClient,
+    db_session: AsyncSession,
+):
+    await _login_as_role(client, db_session, UserRole.PRODUCT_DEPT)
+    target_spu = await _create_spu(client, code="SPU-FAQ-AGG-1", name="目标SPU")
+    other_spu = await _create_spu(client, code="SPU-FAQ-AGG-2", name="其他SPU")
+
+    await client.post(
+        "/api/v1/faqs",
+        json=_faq_payload(question="全局FAQ"),
+    )
+    await client.post(
+        "/api/v1/faqs",
+        json=_faq_payload(question="目标SPU FAQ", spu_id=target_spu["id"]),
+    )
+    await client.post(
+        "/api/v1/faqs",
+        json=_faq_payload(question="其他SPU FAQ", spu_id=other_spu["id"]),
+    )
+
+    response = await client.get(
+        "/api/v1/faqs",
+        params={"page": 1, "page_size": 100, "aggregate_spu_id": target_spu["id"]},
+    )
+
+    assert response.status_code == 200
+    questions = {item["question"] for item in response.json()["items"]}
+    assert questions == {"全局FAQ", "目标SPU FAQ"}
+
+
+@pytest.mark.asyncio
 async def test_faq_attachment_url_must_match_object_key(
     client: AsyncClient,
     db_session: AsyncSession,

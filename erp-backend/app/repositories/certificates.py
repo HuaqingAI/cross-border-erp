@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import date, datetime, timedelta, timezone
 
-from sqlalchemy import and_, func, or_, select
+from sqlalchemy import and_, exists, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -60,6 +60,8 @@ class CertificateRepository(BaseRepository[Certificate]):
         ownership_type: str | None = None,
         validity_status: str | None = None,
         keyword: str | None = None,
+        aggregate_spu_id: int | None = None,
+        aggregate_category_ids: list[int] | None = None,
     ) -> tuple[list[Certificate], int]:
         filters = [self.model.deleted_at.is_(None)]
         if certificate_type:
@@ -88,6 +90,37 @@ class CertificateRepository(BaseRepository[Certificate]):
                 )
             elif validity_status == "已过期":
                 filters.append(self.model.valid_to < today)
+        if aggregate_spu_id is not None or aggregate_category_ids:
+            aggregate_filters = [self.model.ownership_type == "通用"]
+            if aggregate_spu_id is not None:
+                aggregate_filters.append(
+                    and_(
+                        self.model.ownership_type == "SPU归属",
+                        exists(
+                            select(1).where(
+                                CertificateSPUAssignment.certificate_id == self.model.id,
+                                CertificateSPUAssignment.spu_id == aggregate_spu_id,
+                                CertificateSPUAssignment.deleted_at.is_(None),
+                            )
+                        ),
+                    )
+                )
+            if aggregate_category_ids:
+                aggregate_filters.append(
+                    and_(
+                        self.model.ownership_type == "按分类",
+                        exists(
+                            select(1).where(
+                                CertificateCategoryAssignment.certificate_id == self.model.id,
+                                CertificateCategoryAssignment.category_id.in_(
+                                    aggregate_category_ids
+                                ),
+                                CertificateCategoryAssignment.deleted_at.is_(None),
+                            )
+                        ),
+                    )
+                )
+            filters.append(or_(*aggregate_filters))
 
         total_stmt = select(func.count()).select_from(self.model).where(*filters)
         total = (await self.db.execute(total_stmt)).scalar_one()

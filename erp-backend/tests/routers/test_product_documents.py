@@ -253,6 +253,72 @@ async def test_create_document_rejects_blank_name(
 
 
 @pytest.mark.asyncio
+async def test_list_documents_supports_aggregate_filters(
+    client: AsyncClient,
+    db_session: AsyncSession,
+):
+    await _login_as_role(client, db_session, UserRole.PRODUCT_DEPT)
+
+    target_sku = await _create_sku(client, code="SKU-DOC-001", name_zh="目标SKU")
+    other_sku = await _create_sku(client, code="SKU-DOC-002", name_zh="其他SKU")
+    target_level3_id = target_sku["spu"]["category_ids"][2]
+    other_level3_id = other_sku["spu"]["category_ids"][2]
+
+    await client.post(
+        "/api/v1/products/documents",
+        json=_document_payload(name="通用资料"),
+    )
+    await client.post(
+        "/api/v1/products/documents",
+        json=_document_payload(
+            name="目标SKU资料",
+            ownership_type="指定SKU",
+            sku_ids=[target_sku["id"]],
+        ),
+    )
+    await client.post(
+        "/api/v1/products/documents",
+        json=_document_payload(
+            name="目标分类资料",
+            ownership_type="按分类",
+            category_ids=[target_level3_id],
+        ),
+    )
+    await client.post(
+        "/api/v1/products/documents",
+        json=_document_payload(
+            name="其他SKU资料",
+            ownership_type="指定SKU",
+            sku_ids=[other_sku["id"]],
+        ),
+    )
+    await client.post(
+        "/api/v1/products/documents",
+        json=_document_payload(
+            name="其他分类资料",
+            ownership_type="按分类",
+            category_ids=[other_level3_id],
+        ),
+    )
+
+    response = await client.get(
+        "/api/v1/products/documents",
+        params=[
+            ("page", "1"),
+            ("page_size", "100"),
+            ("aggregate_sku_id", str(target_sku["id"])),
+            ("aggregate_category_ids", str(target_sku["spu"]["category_ids"][0])),
+            ("aggregate_category_ids", str(target_sku["spu"]["category_ids"][1])),
+            ("aggregate_category_ids", str(target_sku["spu"]["category_ids"][2])),
+        ],
+    )
+
+    assert response.status_code == 200
+    names = {item["name"] for item in response.json()["items"]}
+    assert names == {"通用资料", "目标SKU资料", "目标分类资料"}
+
+
+@pytest.mark.asyncio
 async def test_create_document_normalizes_optional_text_fields(
     client: AsyncClient,
     db_session: AsyncSession,

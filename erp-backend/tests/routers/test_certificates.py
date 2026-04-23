@@ -215,6 +215,76 @@ async def test_deleted_certificate_still_blocks_reusing_certificate_no(
 
 
 @pytest.mark.asyncio
+async def test_list_certificates_supports_aggregate_filters(
+    client: AsyncClient,
+    db_session: AsyncSession,
+):
+    await _login_as_role(client, db_session, UserRole.PRODUCT_DEPT)
+
+    target_spu = await _create_spu(client, code="SPU-CERT-001", name="目标SPU")
+    other_spu = await _create_spu(client, code="SPU-CERT-002", name="其他SPU")
+    _, _, target_level3_id = target_spu["category_ids"]
+    _, _, other_level3_id = other_spu["category_ids"]
+
+    await client.post(
+        "/api/v1/certificates",
+        json=_certificate_payload(name="通用证书", certificate_no="CERT-AGG-1"),
+    )
+    await client.post(
+        "/api/v1/certificates",
+        json=_certificate_payload(
+            name="目标SPU证书",
+            certificate_no="CERT-AGG-2",
+            ownership_type="SPU归属",
+            spu_ids=[target_spu["id"]],
+        ),
+    )
+    await client.post(
+        "/api/v1/certificates",
+        json=_certificate_payload(
+            name="目标分类证书",
+            certificate_no="CERT-AGG-3",
+            ownership_type="按分类",
+            category_ids=[target_level3_id],
+        ),
+    )
+    await client.post(
+        "/api/v1/certificates",
+        json=_certificate_payload(
+            name="其他SPU证书",
+            certificate_no="CERT-AGG-4",
+            ownership_type="SPU归属",
+            spu_ids=[other_spu["id"]],
+        ),
+    )
+    await client.post(
+        "/api/v1/certificates",
+        json=_certificate_payload(
+            name="其他分类证书",
+            certificate_no="CERT-AGG-5",
+            ownership_type="按分类",
+            category_ids=[other_level3_id],
+        ),
+    )
+
+    response = await client.get(
+        "/api/v1/certificates",
+        params=[
+            ("page", "1"),
+            ("page_size", "100"),
+            ("aggregate_spu_id", str(target_spu["id"])),
+            ("aggregate_category_ids", str(target_spu["category_ids"][0])),
+            ("aggregate_category_ids", str(target_spu["category_ids"][1])),
+            ("aggregate_category_ids", str(target_spu["category_ids"][2])),
+        ],
+    )
+
+    assert response.status_code == 200
+    names = {item["name"] for item in response.json()["items"]}
+    assert names == {"通用证书", "目标SPU证书", "目标分类证书"}
+
+
+@pytest.mark.asyncio
 async def test_certificate_validity_dates_must_be_ordered(
     client: AsyncClient,
     db_session: AsyncSession,

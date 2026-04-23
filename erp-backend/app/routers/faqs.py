@@ -30,6 +30,7 @@ async def list_faqs(
     spu_id: int | None = Query(default=None),
     question_type: str | None = Query(default=None),
     keyword: str | None = Query(default=None),
+    aggregate_spu_id: int | None = Query(default=None, gt=0),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -41,6 +42,7 @@ async def list_faqs(
         spu_id=spu_id,
         question_type=question_type,
         keyword=keyword,
+        aggregate_spu_id=aggregate_spu_id,
     )
 
 

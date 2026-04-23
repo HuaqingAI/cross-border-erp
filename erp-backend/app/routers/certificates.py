@@ -38,6 +38,8 @@ async def list_certificates(
     ownership_type: CertificateOwnershipType | None = Query(default=None),
     validity_status: CertificateValidityStatus | None = Query(default=None),
     keyword: str | None = Query(default=None),
+    aggregate_spu_id: int | None = Query(default=None, gt=0),
+    aggregate_category_ids: list[int] = Query(default_factory=list),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -50,6 +52,8 @@ async def list_certificates(
         ownership_type=ownership_type.value if ownership_type else None,
         validity_status=validity_status.value if validity_status else None,
         keyword=keyword,
+        aggregate_spu_id=aggregate_spu_id,
+        aggregate_category_ids=aggregate_category_ids,
     )
 
 

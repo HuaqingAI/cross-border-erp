@@ -91,6 +91,17 @@ class CertificateListResponse(PaginatedResponse[CertificateListItem]):
     pass
 
 
+class CertificateListQuery(BaseModel):
+    page: int = Field(default=1, ge=1)
+    page_size: int = Field(default=20, ge=1, le=100)
+    certificate_type: str | None = None
+    ownership_type: CertificateOwnershipType | None = None
+    validity_status: CertificateValidityStatus | None = None
+    keyword: str | None = None
+    aggregate_spu_id: int | None = Field(default=None, gt=0)
+    aggregate_category_ids: list[int] = Field(default_factory=list)
+
+
 class CertificateDetail(BaseModel):
     id: int
     name: str
