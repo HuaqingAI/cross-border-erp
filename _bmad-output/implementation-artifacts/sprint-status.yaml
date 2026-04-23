@@ -63,7 +63,7 @@ development_status:
   3-1-spu-数据模型与-crud-api: done
   3-2-spu-列表页与筛选: done
   3-3-spu-新增编辑表单页: done
-  3-4-spu-详情页: backlog
+  3-4-spu-详情页: review
   epic-3-retrospective: optional
 
   # Epic 4: SKU 完整管理
