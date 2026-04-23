@@ -49,6 +49,19 @@ class EnumRepository(BaseRepository[SystemEnum]):
         result = await self.db.execute(stmt.limit(1))
         return result.scalar_one_or_none()
 
+    async def list_enabled_by_group(self, enum_group: str) -> list[SystemEnum]:
+        stmt = (
+            select(self.model)
+            .where(
+                self.model.enum_group == enum_group,
+                self.model.is_enabled.is_(True),
+                self.model.deleted_at.is_(None),
+            )
+            .order_by(self.model.sort_order.asc(), self.model.id.asc())
+        )
+        result = await self.db.execute(stmt)
+        return list(result.scalars().all())
+
     async def count_by_group(self) -> dict[str, dict[str, int]]:
         stmt = (
             select(

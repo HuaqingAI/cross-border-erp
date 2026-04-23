@@ -125,7 +125,7 @@ export default function EnumConfigPage() {
   const [editingItem, setEditingItem] = useState<SystemEnumItem | null>(null)
 
   const groupsQuery = useQuery({
-    queryKey: ['enum-groups'],
+    queryKey: ['system-enum-groups'],
     queryFn: enumsApi.listGroups,
     enabled: permission.canAccessAdminConfig,
   })
@@ -146,7 +146,7 @@ export default function EnumConfigPage() {
   }, [groupsQuery.data, permission.canAccessAdminConfig, selectedGroup])
 
   const enumItemsQuery = useQuery({
-    queryKey: ['enum-items', selectedGroup],
+    queryKey: ['system-enums', selectedGroup, 'all'],
     queryFn: () =>
       enumsApi.list({
         group: selectedGroup as string,
@@ -167,9 +167,9 @@ export default function EnumConfigPage() {
   }
 
   const refreshCurrentGroup = async (groupKey?: string) => {
-    await queryClient.invalidateQueries({ queryKey: ['enum-groups'] })
+    await queryClient.invalidateQueries({ queryKey: ['system-enum-groups'] })
     await queryClient.invalidateQueries({
-      queryKey: ['enum-items', groupKey ?? selectedGroup],
+      queryKey: ['system-enums', groupKey ?? selectedGroup],
     })
   }
 

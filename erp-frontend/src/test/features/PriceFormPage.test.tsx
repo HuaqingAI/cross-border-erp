@@ -5,6 +5,7 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { categoriesApi } from '../../api/categories'
+import { enumsApi } from '../../api/enums'
 import { pricesApi } from '../../api/prices'
 import { skusApi } from '../../api/skus'
 import { spusApi } from '../../api/spus'
@@ -36,6 +37,12 @@ vi.mock('react-activation', () => ({
 vi.mock('../../api/categories', () => ({
   categoriesApi: {
     getTree: vi.fn(),
+  },
+}))
+
+vi.mock('../../api/enums', () => ({
+  enumsApi: {
+    list: vi.fn(),
   },
 }))
 
@@ -263,6 +270,70 @@ beforeEach(() => {
   })
 
   vi.mocked(categoriesApi.getTree).mockResolvedValue(categoryTree)
+  vi.mocked(enumsApi.list).mockImplementation(async (params) => {
+    if (params.group === 'currency') {
+      return [
+        {
+          id: 1,
+          enum_group: 'currency',
+          enum_key: 'CNY',
+          enum_value: '人民币',
+          sort_order: 0,
+          is_enabled: true,
+          is_protected: false,
+          created_at: '2026-04-22T08:00:00Z',
+          updated_at: '2026-04-22T08:00:00Z',
+        },
+        {
+          id: 2,
+          enum_group: 'currency',
+          enum_key: 'USD',
+          enum_value: '美元',
+          sort_order: 10,
+          is_enabled: true,
+          is_protected: false,
+          created_at: '2026-04-22T08:00:00Z',
+          updated_at: '2026-04-22T08:00:00Z',
+        },
+      ]
+    }
+
+    return [
+      {
+        id: 3,
+        enum_group: 'country_region',
+        enum_key: 'GLOBAL',
+        enum_value: '全球',
+        sort_order: 0,
+        is_enabled: true,
+        is_protected: true,
+        created_at: '2026-04-22T08:00:00Z',
+        updated_at: '2026-04-22T08:00:00Z',
+      },
+      {
+        id: 4,
+        enum_group: 'country_region',
+        enum_key: 'CN',
+        enum_value: '中国',
+        sort_order: 10,
+        is_enabled: true,
+        is_protected: false,
+        created_at: '2026-04-22T08:00:00Z',
+        updated_at: '2026-04-22T08:00:00Z',
+      },
+      {
+        id: 5,
+        enum_group: 'country_region',
+        enum_key: 'US',
+        enum_value: '美国',
+        sort_order: 20,
+        is_enabled: true,
+        is_protected: false,
+        created_at: '2026-04-22T08:00:00Z',
+        updated_at: '2026-04-22T08:00:00Z',
+      },
+    ]
+  })
   vi.mocked(pricesApi.getById).mockResolvedValue(rejectedDetail)
   vi.mocked(pricesApi.update).mockResolvedValue(rejectedDetail)
   vi.mocked(pricesApi.submit).mockResolvedValue(pendingDetail)
@@ -356,6 +427,67 @@ describe('PriceFormPage', () => {
         },
       ],
     })
+  })
+
+  it('编辑态提交时会按最新枚举文案回写区域名称', async () => {
+    const user = userEvent.setup()
+    vi.mocked(enumsApi.list).mockImplementation(async (params) => {
+      if (params.group === 'currency') {
+        return [
+          {
+            id: 1,
+            enum_group: 'currency',
+            enum_key: 'CNY',
+            enum_value: '人民币',
+            sort_order: 0,
+            is_enabled: true,
+            is_protected: false,
+            created_at: '2026-04-22T08:00:00Z',
+            updated_at: '2026-04-22T08:00:00Z',
+          },
+        ]
+      }
+
+      return [
+        {
+          id: 3,
+          enum_group: 'country_region',
+          enum_key: 'GLOBAL',
+          enum_value: '全球市场',
+          sort_order: 0,
+          is_enabled: true,
+          is_protected: true,
+          created_at: '2026-04-22T08:00:00Z',
+          updated_at: '2026-04-22T08:00:00Z',
+        },
+      ]
+    })
+
+    renderPriceFormPage({
+      mode: 'edit',
+      priceId: '301',
+      currentPath: '/prices/301/edit',
+    })
+
+    expect(await screen.findByText('当前记录已驳回')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /提交审批/ }))
+
+    await waitFor(() =>
+      expect(pricesApi.update).toHaveBeenCalledWith(301, {
+        sku_id: 201,
+        regions: [
+          {
+            country_code: 'GLOBAL',
+            country_name: '全球市场',
+            currency: 'CNY',
+            sale_price: 199,
+            list_price: 259,
+            remarks: '初始价格',
+            sort_order: 0,
+          },
+        ],
+      }),
+    )
   })
 
   it('新增态选择 SKU 后会自动带出只读 SKU 信息', async () => {

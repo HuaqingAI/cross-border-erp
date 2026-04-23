@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import { documentsApi } from '../../../../api/documents'
 import { FormSectionCard } from '../../../../components/common'
 import { usePermission } from '../../../../hooks/usePermission'
+import { resolveEnumLabel, useSystemEnumItems } from '../../../../hooks/useSystemEnums'
 import { useUIStore } from '../../../../stores/uiStore'
 
 interface DocumentDetailPageProps {
@@ -143,6 +144,9 @@ export default function DocumentDetailPage({ documentId }: DocumentDetailPagePro
     enabled: numericDocumentId !== null,
   })
 
+  const documentTypeQuery = useSystemEnumItems('document_type', numericDocumentId !== null)
+  const countryRegionQuery = useSystemEnumItems('country_region', numericDocumentId !== null)
+
   if (numericDocumentId === null) {
     return (
       <div style={{ padding: 16 }}>
@@ -211,7 +215,9 @@ export default function DocumentDetailPage({ documentId }: DocumentDetailPagePro
       <FormSectionCard title="基础资料">
         <Descriptions column={3} size="small" bordered>
           <Descriptions.Item label="资料名称">{document.name}</Descriptions.Item>
-          <Descriptions.Item label="资料类型">{document.document_type || '—'}</Descriptions.Item>
+          <Descriptions.Item label="资料类型">
+            {resolveEnumLabel(documentTypeQuery.data, document.document_type)}
+          </Descriptions.Item>
           <Descriptions.Item label="归属类型">{document.ownership_type}</Descriptions.Item>
           <Descriptions.Item label="归属范围" span={3}>
             {document.ownership_summary}
@@ -220,7 +226,9 @@ export default function DocumentDetailPage({ documentId }: DocumentDetailPagePro
             {document.applicable_countries.length > 0 ? (
               <Space wrap size={[4, 4]}>
                 {document.applicable_countries.map((country) => (
-                  <Tag key={country}>{country}</Tag>
+                  <Tag key={country}>
+                    {resolveEnumLabel(countryRegionQuery.data, country, country)}
+                  </Tag>
                 ))}
               </Space>
             ) : (

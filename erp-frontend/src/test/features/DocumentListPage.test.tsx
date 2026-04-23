@@ -8,6 +8,7 @@ import DocumentListPage, {
   buildQueryParams,
 } from '../../features/products/documents/pages/DocumentListPage'
 import { documentsApi } from '../../api/documents'
+import { enumsApi } from '../../api/enums'
 import { useAuthStore } from '../../stores/authStore'
 import { useUIStore } from '../../stores/uiStore'
 import type { DocumentListItem, PaginatedResult } from '../../types/product'
@@ -26,6 +27,12 @@ vi.mock('../../api/documents', () => ({
   documentsApi: {
     list: vi.fn(),
     remove: vi.fn(),
+  },
+}))
+
+vi.mock('../../api/enums', () => ({
+  enumsApi: {
+    list: vi.fn(),
   },
 }))
 
@@ -78,6 +85,19 @@ beforeEach(() => {
     page: 1,
     page_size: 20,
   } as PaginatedResult<DocumentListItem>)
+  vi.mocked(enumsApi.list).mockResolvedValue([
+    {
+      id: 1,
+      enum_group: 'document_type',
+      enum_key: '产品手册',
+      enum_value: '产品手册',
+      sort_order: 0,
+      is_enabled: true,
+      is_protected: false,
+      created_at: '2026-04-21T09:00:00Z',
+      updated_at: '2026-04-21T09:00:00Z',
+    },
+  ])
 
   useUIStore.setState({
     tabs: [],

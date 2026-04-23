@@ -33,6 +33,7 @@ from app.schemas.product_document import (
 
 class ProductDocumentService:
     ATTACHMENT_FOLDER = "product-documents/"
+    COUNTRY_REGION_CODE_PATTERN = re.compile(r"^(?:[A-Z]{2}|GLOBAL)$")
 
     def __init__(self, db: AsyncSession):
         self.db = db
@@ -337,9 +338,11 @@ class ProductDocumentService:
         result: list[str] = []
         seen: set[str] = set()
         for value in values:
-            normalized = value.strip()
+            normalized = value.strip().upper()
             if not normalized or normalized in seen:
                 continue
+            if not self.COUNTRY_REGION_CODE_PATTERN.fullmatch(normalized):
+                raise BusinessError("适用国家/地区必须为标准编码（如 CN、US、GLOBAL）")
             seen.add(normalized)
             result.append(normalized)
         return result

@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom'
 import { documentsApi } from '../../../../api/documents'
 import { FilterCard, PaginationBar } from '../../../../components/common'
 import { usePermission } from '../../../../hooks/usePermission'
+import { resolveEnumLabel, useSystemEnumItems } from '../../../../hooks/useSystemEnums'
 import { useUIStore } from '../../../../stores/uiStore'
 import type { DocumentListItem, DocumentListQuery, DocumentOwnershipType } from '../../../../types/product'
 
@@ -14,15 +15,6 @@ interface FilterValues {
   ownership_type?: DocumentOwnershipType
   keyword?: string
 }
-
-const DOCUMENT_TYPE_OPTIONS = [
-  '产品手册',
-  '技术参数',
-  '使用说明',
-  '安装说明',
-  '培训资料',
-  '其他',
-].map((value) => ({ label: value, value }))
 
 const OWNERSHIP_OPTIONS: Array<{ label: DocumentOwnershipType; value: DocumentOwnershipType }> = [
   { label: '通用', value: '通用' },
@@ -79,6 +71,8 @@ export default function DocumentListPage() {
     queryFn: () => documentsApi.list(queryParams),
   })
 
+  const documentTypeQuery = useSystemEnumItems('document_type')
+
   const deleteMutation = useMutation({
     mutationFn: (id: number) => documentsApi.remove(id),
     onSuccess: async (_, id) => {
@@ -129,7 +123,8 @@ export default function DocumentListPage() {
       dataIndex: 'document_type',
       key: 'document_type',
       width: 140,
-      render: (value?: string | null) => value || '—',
+      render: (value?: string | null) =>
+        resolveEnumLabel(documentTypeQuery.data, value),
     },
     {
       title: '归属类型',
@@ -216,7 +211,11 @@ export default function DocumentListPage() {
                 allowClear
                 showSearch
                 placeholder="请选择资料类型"
-                options={DOCUMENT_TYPE_OPTIONS}
+                options={documentTypeQuery.data?.map((item) => ({
+                  label: item.enum_value,
+                  value: item.enum_key,
+                })) ?? []}
+                loading={documentTypeQuery.isLoading}
                 optionFilterProp="label"
               />
             </Form.Item>

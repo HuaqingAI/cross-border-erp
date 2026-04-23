@@ -9,6 +9,7 @@ from app.models.price import Price, PriceRegion
 from app.models.product_category import ProductCategory
 from app.models.sku import SKU
 from app.models.spu import SPU
+from app.models.system_enum import SystemEnum
 from app.schemas.price import PriceCreate, PriceRegionPayload
 from app.services.prices import PriceService
 
@@ -33,6 +34,67 @@ def test_price_schema_normalizes_regions_and_defaults_global():
     assert region.country_name == "全球"
     assert region.currency == "USD"
     assert region.remarks == "首发价"
+
+
+@pytest.mark.asyncio
+async def test_replace_regions_uses_latest_enum_label(db_session):
+    price = Price(
+        sku_id=1,
+        sku_code="SKU-PRICE-LABEL",
+        sku_name_zh="价格标签测试",
+        sku_name_en="Price Label Test",
+        spu_id=1,
+        spu_code="SPU-PRICE-LABEL",
+        spu_name="价格标签测试SPU",
+        level1_category_id=1,
+        level1_category_code="L1",
+        level1_category_name="一级分类",
+        level2_category_id=2,
+        level2_category_code="L2",
+        level2_category_name="二级分类",
+        level3_category_id=3,
+        level3_category_code="L3",
+        level3_category_name="三级分类",
+        purchase_price=Decimal("88.00"),
+        supplier_name="供应商A",
+        product_model="MODEL-A",
+        product_status="上架",
+    )
+    db_session.add(price)
+    db_session.add(
+        SystemEnum(
+            enum_group="country_region",
+            enum_key="CN",
+            enum_value="中国大陆",
+            description="最新国家名称",
+            sort_order=10,
+            is_enabled=True,
+        )
+    )
+    await db_session.commit()
+    await db_session.refresh(price)
+
+    service = PriceService(db_session)
+    await service._replace_regions(
+        price.id,
+        [
+            PriceRegionPayload(
+                country_code="CN",
+                country_name="中国",
+                currency="CNY",
+                sale_price=Decimal("199.00"),
+                list_price=Decimal("299.00"),
+            )
+        ],
+        version_stage=service.REGION_STAGE_DRAFT,
+    )
+
+    stored_regions = await service.repo.list_active_regions(
+        price.id,
+        version_stage=service.REGION_STAGE_DRAFT,
+    )
+    assert len(stored_regions) == 1
+    assert stored_regions[0].country_name == "中国大陆"
 
 
 @pytest.mark.asyncio

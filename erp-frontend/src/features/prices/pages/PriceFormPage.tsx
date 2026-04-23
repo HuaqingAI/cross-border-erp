@@ -10,12 +10,14 @@ import { spusApi } from '../../../api/spus'
 import { FixedActionBar, FormSectionCard, InheritedField } from '../../../components/common'
 import FormGrid from '../../../components/form/FormGrid'
 import { usePermission } from '../../../hooks/usePermission'
+import { buildEnumOptions, useSystemEnumItems } from '../../../hooks/useSystemEnums'
 import { useUIStore } from '../../../stores/uiStore'
 import type {
   CategoryTreeNode,
   PriceDetail,
   PriceMutationPayload,
   PriceRegionInput,
+  SystemEnumItem,
   SkuListItem,
 } from '../../../types/product'
 
@@ -181,6 +183,16 @@ export function toPricePayload(values: PriceFormValues): PriceMutationPayload {
   }
 }
 
+function resolveCountryName(
+  items: SystemEnumItem[] | undefined,
+  countryCode: string,
+  fallbackName?: string | null,
+): string {
+  const normalizedCode = countryCode.trim().toUpperCase()
+  const matched = items?.find((item) => item.enum_key === normalizedCode)
+  return matched?.enum_value ?? fallbackName?.trim() ?? normalizedCode
+}
+
 export default function PriceFormPage({ mode, priceId }: PriceFormPageProps) {
   const [form] = Form.useForm<PriceFormValues>()
   const { message } = AntdApp.useApp()
@@ -209,6 +221,9 @@ export default function PriceFormPage({ mode, priceId }: PriceFormPageProps) {
     queryFn: () => pricesApi.getById(numericPriceId as number),
     enabled: isEditMode && numericPriceId !== null,
   })
+
+  const countryRegionQuery = useSystemEnumItems('country_region')
+  const currencyQuery = useSystemEnumItems('currency')
 
   const skuOptionsQuery = useQuery({
     queryKey: ['price-sku-options', skuKeyword],
@@ -329,13 +344,58 @@ export default function PriceFormPage({ mode, priceId }: PriceFormPageProps) {
       : undefined,
   )
 
+  const countryRegionOptions = useMemo(
+    () =>
+      buildEnumOptions(
+        countryRegionQuery.data,
+        detailQuery.data?.regions?.map((region) => ({
+          value: region.country_code,
+          label: region.country_name,
+        })) ?? [{ value: DEFAULT_REGION_VALUE.country_code, label: DEFAULT_REGION_VALUE.country_name }],
+      ),
+    [countryRegionQuery.data, detailQuery.data?.regions],
+  )
+
+  const currencyOptions = useMemo(
+    () =>
+      buildEnumOptions(
+        currencyQuery.data,
+        detailQuery.data?.regions?.map((region) => ({
+          value: region.currency,
+          label: region.currency,
+        })) ?? [{ value: DEFAULT_REGION_VALUE.currency, label: DEFAULT_REGION_VALUE.currency }],
+      ),
+    [currencyQuery.data, detailQuery.data?.regions],
+  )
+
+  const handleCountryCodeChange = (regionIndex: number, nextCode?: string) => {
+    const selectedItem = countryRegionQuery.data?.find((item) => item.enum_key === nextCode)
+    form.setFieldValue(['regions', regionIndex, 'country_code'], nextCode ?? '')
+    form.setFieldValue(['regions', regionIndex, 'country_name'], selectedItem?.enum_value ?? '')
+  }
+
+  const handleCurrencyChange = (regionIndex: number, nextCurrency?: string) => {
+    form.setFieldValue(['regions', regionIndex, 'currency'], nextCurrency ?? '')
+  }
+
   const saveMutation = useMutation({
     mutationFn: async ({ values, intent }: { values: PriceFormValues; intent: SaveIntent }) => {
       const payload = toPricePayload(values)
+      const normalizedPayload: PriceMutationPayload = {
+        ...payload,
+        regions: payload.regions.map((region) => ({
+          ...region,
+          country_name: resolveCountryName(
+            countryRegionQuery.data,
+            region.country_code,
+            region.country_name,
+          ),
+        })),
+      }
       const savedPrice =
         isEditMode && numericPriceId !== null
-          ? await pricesApi.update(numericPriceId, payload)
-          : await pricesApi.create(payload)
+          ? await pricesApi.update(numericPriceId, normalizedPayload)
+          : await pricesApi.create(normalizedPayload)
 
       if (intent === 'draft') {
         return { price: savedPrice, intent }
@@ -706,27 +766,40 @@ export default function PriceFormPage({ mode, priceId }: PriceFormPageProps) {
                             <Form.Item
                               name={[field.name, 'country_code']}
                               style={{ marginBottom: 0 }}
-                              rules={[{ required: true, message: '请输入区域编码' }]}
+                              rules={[{ required: true, message: '请选择区域编码' }]}
                             >
-                              <Input placeholder="如 CN / US / GLOBAL" />
+                              <Select
+                                showSearch
+                                optionFilterProp="label"
+                                placeholder="请选择区域编码"
+                                options={countryRegionOptions}
+                                loading={countryRegionQuery.isLoading}
+                                onChange={(value) => handleCountryCodeChange(field.name, value)}
+                              />
                             </Form.Item>
                           </td>
                           <td style={{ padding: 8, borderBottom: '1px solid #f0f0f0' }}>
                             <Form.Item
                               name={[field.name, 'country_name']}
                               style={{ marginBottom: 0 }}
-                              rules={[{ required: true, message: '请输入区域名称' }]}
                             >
-                              <Input placeholder="如 中国 / 美国 / 全球" />
+                              <Input placeholder="将随区域编码自动带出" disabled />
                             </Form.Item>
                           </td>
                           <td style={{ padding: 8, borderBottom: '1px solid #f0f0f0' }}>
                             <Form.Item
                               name={[field.name, 'currency']}
                               style={{ marginBottom: 0 }}
-                              rules={[{ required: true, message: '请输入币种' }]}
+                              rules={[{ required: true, message: '请选择币种' }]}
                             >
-                              <Input placeholder="如 CNY / USD" />
+                              <Select
+                                showSearch
+                                optionFilterProp="label"
+                                placeholder="请选择币种"
+                                options={currencyOptions}
+                                loading={currencyQuery.isLoading}
+                                onChange={(value) => handleCurrencyChange(field.name, value)}
+                              />
                             </Form.Item>
                           </td>
                           <td style={{ padding: 8, borderBottom: '1px solid #f0f0f0' }}>

@@ -9,6 +9,7 @@ from app.models.price import Price, PriceRegion
 from app.models.product_category import ProductCategory
 from app.models.sku import SKU
 from app.models.user import User, UserRole
+from app.repositories.enums import EnumRepository
 from app.repositories.prices import PriceRepository
 from app.repositories.product_categories import ProductCategoryRepository
 from app.repositories.skus import SKURepository
@@ -30,6 +31,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 class PriceService:
     REGION_STAGE_DRAFT = "draft"
     REGION_STAGE_APPROVED = "approved"
+    COUNTRY_REGION_GROUP = "country_region"
     DUPLICATE_PRICE_MESSAGE = "该SKU已存在价格记录"
     DUPLICATE_REGION_MESSAGE = "同一 SKU 同一国家/地区不可重复设置价格"
     SUBMIT_FORBIDDEN_MESSAGE = "当前状态不可提交审批"
@@ -42,6 +44,7 @@ class PriceService:
     def __init__(self, db: AsyncSession):
         self.db = db
         self.repo = PriceRepository(db)
+        self.enum_repo = EnumRepository(db)
         self.sku_repo = SKURepository(db)
         self.category_repo = ProductCategoryRepository(db)
 
@@ -406,12 +409,17 @@ class PriceService:
         if existing:
             await self.repo.soft_delete_regions(existing)
 
+        country_label_map = await self._get_country_label_map()
+
         for index, payload in enumerate(regions):
             region = PriceRegion(
                 price_id=price_id,
                 version_stage=version_stage,
                 country_code=payload.country_code,
-                country_name=payload.country_name,
+                country_name=country_label_map.get(
+                    payload.country_code,
+                    payload.country_name,
+                ),
                 currency=payload.currency,
                 sale_price=payload.sale_price,
                 list_price=payload.list_price,
@@ -419,6 +427,10 @@ class PriceService:
                 sort_order=payload.sort_order if payload.sort_order is not None else index,
             )
             await self.repo.save_region(region)
+
+    async def _get_country_label_map(self) -> dict[str, str]:
+        items = await self.enum_repo.list_enabled_by_group(self.COUNTRY_REGION_GROUP)
+        return {item.enum_key: item.enum_value for item in items}
 
     def _to_region_payload(self, region: PriceRegion) -> PriceRegionPayload:
         return PriceRegionPayload.model_validate(
