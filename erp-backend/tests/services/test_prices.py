@@ -38,23 +38,99 @@ def test_price_schema_normalizes_regions_and_defaults_global():
 
 @pytest.mark.asyncio
 async def test_replace_regions_uses_latest_enum_label(db_session):
+    level1 = ProductCategory(code="L1-PRICE-LABEL", name="一级分类", level=1, parent_id=None, sort_order=1)
+    db_session.add(level1)
+    await db_session.flush()
+
+    level2 = ProductCategory(
+        code="L2-PRICE-LABEL",
+        name="二级分类",
+        level=2,
+        parent_id=level1.id,
+        sort_order=1,
+    )
+    db_session.add(level2)
+    await db_session.flush()
+
+    level3 = ProductCategory(
+        code="L3-PRICE-LABEL",
+        name="三级分类",
+        level=3,
+        parent_id=level2.id,
+        sort_order=1,
+    )
+    db_session.add(level3)
+    await db_session.flush()
+
+    spu = SPU(
+        code="SPU-PRICE-LABEL",
+        name="价格标签测试SPU",
+        level1_category_id=level1.id,
+        level2_category_id=level2.id,
+        level3_category_id=level3.id,
+        customer_warranty_months=24,
+        unit="台",
+        restricted_countries=["CN"],
+        supplier_name="供应商A",
+        manufacturer_model="MODEL-A",
+        purchase_price=Decimal("88.00"),
+        purchase_warranty_months=12,
+        supplier_warranty_notes="标准质保",
+    )
+    db_session.add(spu)
+    await db_session.flush()
+
+    sku = SKU(
+        spu_id=spu.id,
+        code="SKU-PRICE-LABEL",
+        name_zh="价格标签测试",
+        name_en="Price Label Test",
+        product_model="MODEL-A",
+        product_type="主品",
+        level1_category_id=level1.id,
+        level2_category_id=level2.id,
+        level3_category_id=level3.id,
+        supplier_name="供应商A",
+        restricted_countries=["CN"],
+        customer_warranty_months=24,
+        core_params="核心参数",
+        product_status="上架",
+        electrical_params=None,
+        principle="工作原理",
+        usage="临床用途",
+        material="ABS",
+        unit="台",
+        has_plug=False,
+        is_special=False,
+        special_notes=None,
+        package_type="纸箱",
+        package_quantity=1,
+        customs_hscode=None,
+        customs_supervision_condition=None,
+        customs_declaration_elements=None,
+        customs_refund_tax_rate=None,
+        customs_info_ready=False,
+    )
+    db_session.add(sku)
+    await db_session.flush()
+
     price = Price(
-        sku_id=1,
-        sku_code="SKU-PRICE-LABEL",
-        sku_name_zh="价格标签测试",
-        sku_name_en="Price Label Test",
-        spu_id=1,
-        spu_code="SPU-PRICE-LABEL",
-        spu_name="价格标签测试SPU",
-        level1_category_id=1,
-        level1_category_code="L1",
-        level1_category_name="一级分类",
-        level2_category_id=2,
-        level2_category_code="L2",
-        level2_category_name="二级分类",
-        level3_category_id=3,
-        level3_category_code="L3",
-        level3_category_name="三级分类",
+        sku_id=sku.id,
+        sku_code=sku.code,
+        sku_name_zh=sku.name_zh,
+        sku_name_en=sku.name_en,
+        spu_id=spu.id,
+        spu_code=spu.code,
+        spu_name=spu.name,
+        level1_category_id=level1.id,
+        level1_category_code=level1.code,
+        level1_category_name=level1.name,
+        level2_category_id=level2.id,
+        level2_category_code=level2.code,
+        level2_category_name=level2.name,
+        level3_category_id=level3.id,
+        level3_category_code=level3.code,
+        level3_category_name=level3.name,
         purchase_price=Decimal("88.00"),
         supplier_name="供应商A",
         product_model="MODEL-A",
