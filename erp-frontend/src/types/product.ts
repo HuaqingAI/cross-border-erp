@@ -258,6 +258,61 @@ export interface PriceRegionInput {
   sort_order?: number
 }
 
+export type SystemEnumGroupKey =
+  | 'unit'
+  | 'product_type'
+  | 'product_status'
+  | 'package_type'
+  | 'electrical_params'
+  | 'certificate_type'
+  | 'faq_question_type'
+  | 'document_type'
+  | 'currency'
+  | 'country_region'
+
+export interface SystemEnumGroupSummary {
+  key: SystemEnumGroupKey | string
+  label: string
+  description: string
+  total_count: number
+  enabled_count: number
+}
+
+export interface SystemEnumItem {
+  id: number
+  enum_group: SystemEnumGroupKey | string
+  enum_key: string
+  enum_value: string
+  description?: string | null
+  sort_order: number
+  is_enabled: boolean
+  is_protected: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface SystemEnumListQuery {
+  group: string
+  include_disabled?: boolean
+}
+
+export interface SystemEnumCreatePayload {
+  enum_group: string
+  enum_key: string
+  enum_value: string
+  description?: string | null
+  sort_order: number
+  is_enabled: boolean
+}
+
+export interface SystemEnumUpdatePayload {
+  enum_key?: string
+  enum_value?: string
+  description?: string | null
+  sort_order?: number
+  is_enabled?: boolean
+}
+
 export interface PriceListItem {
   id: number
   sku_id: number
