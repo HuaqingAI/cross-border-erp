@@ -116,6 +116,46 @@ async def test_product_user_can_create_spu(client: AsyncClient, db_session: Asyn
 
 
 @pytest.mark.asyncio
+async def test_spu_restricted_countries_use_standard_codes(
+    client: AsyncClient,
+    db_session: AsyncSession,
+):
+    await _login_as_role(client, db_session, UserRole.PRODUCT_DEPT)
+    category_ids = await _create_category_tree(client)
+    payload = _spu_payload(
+        code="SPU-COUNTRY-CODE",
+        name="国家编码测试",
+        category_ids=category_ids,
+    )
+    payload["restricted_countries"] = [" us ", "GLOBAL", "US", "cn"]
+
+    response = await client.post("/api/v1/spus", json=payload)
+
+    assert response.status_code == 201
+    assert response.json()["restricted_countries"] == ["US", "GLOBAL", "CN"]
+
+
+@pytest.mark.asyncio
+async def test_spu_restricted_countries_reject_non_standard_codes(
+    client: AsyncClient,
+    db_session: AsyncSession,
+):
+    await _login_as_role(client, db_session, UserRole.PRODUCT_DEPT)
+    category_ids = await _create_category_tree(client)
+    payload = _spu_payload(
+        code="SPU-COUNTRY-NAME",
+        name="国家名称测试",
+        category_ids=category_ids,
+    )
+    payload["restricted_countries"] = ["China"]
+
+    response = await client.post("/api/v1/spus", json=payload)
+
+    assert response.status_code == 400
+    assert response.json()["message"] == "禁止经营国家必须为标准编码（如 CN、US、GLOBAL）"
+
+
+@pytest.mark.asyncio
 async def test_spu_code_must_be_unique(client: AsyncClient, db_session: AsyncSession):
     await _login_as_role(client, db_session, UserRole.PRODUCT_DEPT)
     category_ids = await _create_category_tree(client)

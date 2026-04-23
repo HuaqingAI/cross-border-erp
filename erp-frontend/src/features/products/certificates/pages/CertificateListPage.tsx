@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom'
 import { certificatesApi } from '../../../../api/certificates'
 import { FilterCard, PaginationBar } from '../../../../components/common'
 import { usePermission } from '../../../../hooks/usePermission'
+import { buildEnumOptions, resolveEnumLabel, useSystemEnumItems } from '../../../../hooks/useSystemEnums'
 import { useUIStore } from '../../../../stores/uiStore'
 import type {
   CertificateListItem,
@@ -21,15 +22,6 @@ interface FilterValues {
   validity_status?: CertificateValidityStatus
   keyword?: string
 }
-
-const CERTIFICATE_TYPE_OPTIONS = [
-  'CE',
-  'FDA',
-  'ISO13485',
-  'IEC检测报告',
-  'DOC',
-  '其他',
-].map((value) => ({ label: value, value }))
 
 const OWNERSHIP_OPTIONS: Array<{ label: CertificateOwnershipType; value: CertificateOwnershipType }> = [
   { label: '通用', value: '通用' },
@@ -100,6 +92,7 @@ export default function CertificateListPage() {
     page: 1,
     page_size: 20,
   })
+  const certificateTypeQuery = useSystemEnumItems('certificate_type')
 
   const certificatesQuery = useQuery({
     queryKey: ['certificates-list', queryParams],
@@ -162,6 +155,7 @@ export default function CertificateListPage() {
       dataIndex: 'certificate_type',
       key: 'certificate_type',
       width: 140,
+      render: (value: string) => resolveEnumLabel(certificateTypeQuery.data, value),
     },
     {
       title: '归属范围',
@@ -255,7 +249,8 @@ export default function CertificateListPage() {
                 allowClear
                 showSearch
                 placeholder="请选择证书类型"
-                options={CERTIFICATE_TYPE_OPTIONS}
+                options={buildEnumOptions(certificateTypeQuery.data)}
+                loading={certificateTypeQuery.isLoading}
                 optionFilterProp="label"
               />
             </Form.Item>

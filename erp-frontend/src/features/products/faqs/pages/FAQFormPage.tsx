@@ -10,6 +10,7 @@ import { spusApi } from '../../../../api/spus'
 import { FixedActionBar, FormSectionCard } from '../../../../components/common'
 import FormGrid from '../../../../components/form/FormGrid'
 import { usePermission } from '../../../../hooks/usePermission'
+import { buildEnumOptions, useSystemEnumItems } from '../../../../hooks/useSystemEnums'
 import { useUIStore } from '../../../../stores/uiStore'
 import type { Faq, FaqMutationPayload, SpuListItem } from '../../../../types/product'
 import { formatFileSize, uploadFile } from '../../../../utils/upload'
@@ -25,11 +26,6 @@ interface FAQFormValues {
   question: string
   answer: string
 }
-
-const QUESTION_TYPE_OPTIONS = ['售后', '安装', '使用', '配置', '其他'].map((value) => ({
-  label: value,
-  value,
-}))
 
 const DEFAULT_FORM_VALUES: FAQFormValues = {
   spu_id: undefined,
@@ -147,6 +143,7 @@ export default function FAQFormPage({ mode, faqId }: FAQFormPageProps) {
     queryFn: () => faqsApi.getById(numericFaqId as number),
     enabled: isEditMode && numericFaqId !== null,
   })
+  const questionTypeQuery = useSystemEnumItems('faq_question_type')
 
   const spuOptionsQuery = useQuery({
     queryKey: ['faq-spu-options', spuKeyword],
@@ -189,6 +186,12 @@ export default function FAQFormPage({ mode, faqId }: FAQFormPageProps) {
     }
     return Array.from(options.entries()).map(([value, label]) => ({ value, label }))
   }, [detailQuery.data, spuOptionsQuery.data?.items])
+  const questionTypeOptions = buildEnumOptions(
+    questionTypeQuery.data,
+    detailQuery.data?.question_type
+      ? [{ value: detailQuery.data.question_type }]
+      : [],
+  )
 
   const uploadProps: UploadProps = {
     maxCount: 1,
@@ -401,7 +404,8 @@ export default function FAQFormPage({ mode, faqId }: FAQFormPageProps) {
                 <Select
                   allowClear
                   placeholder="请选择问题类型"
-                  options={QUESTION_TYPE_OPTIONS}
+                  options={questionTypeOptions}
+                  loading={questionTypeQuery.isLoading}
                 />
               </Form.Item>
               <div />

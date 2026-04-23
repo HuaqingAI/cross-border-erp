@@ -6,6 +6,7 @@ import userEvent from '@testing-library/user-event'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { categoriesApi } from '../../api/categories'
 import { certificatesApi } from '../../api/certificates'
+import { enumsApi } from '../../api/enums'
 import { faqsApi } from '../../api/faqs'
 import { skusApi } from '../../api/skus'
 import { spusApi } from '../../api/spus'
@@ -58,6 +59,12 @@ vi.mock('../../api/skus', () => ({
 
 vi.mock('../../api/certificates', () => ({
   certificatesApi: {
+    list: vi.fn(),
+  },
+}))
+
+vi.mock('../../api/enums', () => ({
+  enumsApi: {
     list: vi.fn(),
   },
 }))
@@ -332,6 +339,106 @@ beforeEach(() => {
   vi.clearAllMocks()
 
   vi.mocked(categoriesApi.getTree).mockResolvedValue(categoryTree)
+  vi.mocked(enumsApi.list).mockImplementation(async (params) => {
+    if (params.group === 'unit') {
+      return [
+        {
+          id: 1,
+          enum_group: 'unit',
+          enum_key: '台',
+          enum_value: '台',
+          description: null,
+          sort_order: 1,
+          is_enabled: true,
+          is_protected: false,
+          created_at: '2026-04-23T00:00:00Z',
+          updated_at: '2026-04-23T00:00:00Z',
+        },
+      ]
+    }
+    if (params.group === 'country_region') {
+      return [
+        {
+          id: 2,
+          enum_group: 'country_region',
+          enum_key: 'IR',
+          enum_value: '伊朗',
+          description: null,
+          sort_order: 1,
+          is_enabled: true,
+          is_protected: false,
+          created_at: '2026-04-23T00:00:00Z',
+          updated_at: '2026-04-23T00:00:00Z',
+        },
+        {
+          id: 3,
+          enum_group: 'country_region',
+          enum_key: 'KP',
+          enum_value: '朝鲜',
+          description: null,
+          sort_order: 2,
+          is_enabled: true,
+          is_protected: false,
+          created_at: '2026-04-23T00:00:00Z',
+          updated_at: '2026-04-23T00:00:00Z',
+        },
+      ]
+    }
+    if (params.group === 'certificate_type') {
+      return [
+        {
+          id: 4,
+          enum_group: 'certificate_type',
+          enum_key: 'CE',
+          enum_value: 'CE认证',
+          description: null,
+          sort_order: 1,
+          is_enabled: true,
+          is_protected: false,
+          created_at: '2026-04-23T00:00:00Z',
+          updated_at: '2026-04-23T00:00:00Z',
+        },
+        {
+          id: 5,
+          enum_group: 'certificate_type',
+          enum_key: 'FDA',
+          enum_value: 'FDA认证',
+          description: null,
+          sort_order: 2,
+          is_enabled: true,
+          is_protected: false,
+          created_at: '2026-04-23T00:00:00Z',
+          updated_at: '2026-04-23T00:00:00Z',
+        },
+      ]
+    }
+    return [
+      {
+        id: 6,
+        enum_group: 'faq_question_type',
+        enum_key: '安装',
+        enum_value: '安装调试',
+        description: null,
+        sort_order: 1,
+        is_enabled: true,
+        is_protected: false,
+        created_at: '2026-04-23T00:00:00Z',
+        updated_at: '2026-04-23T00:00:00Z',
+      },
+      {
+        id: 7,
+        enum_group: 'faq_question_type',
+        enum_key: '售后',
+        enum_value: '售后服务',
+        description: null,
+        sort_order: 2,
+        is_enabled: true,
+        is_protected: false,
+        created_at: '2026-04-23T00:00:00Z',
+        updated_at: '2026-04-23T00:00:00Z',
+      },
+    ]
+  })
   vi.mocked(spusApi.getById).mockResolvedValue(spuDetailWithPrice)
   vi.mocked(skusApi.list).mockResolvedValue({
     items: skuItems,
@@ -391,6 +498,7 @@ describe('SPUDetailPage', () => {
     expect(await screen.findByText('超声平台')).toBeInTheDocument()
     expect(screen.getByText('医疗设备 / 影像设备 / 超声设备')).toBeInTheDocument()
     expect(screen.getByText('123.45')).toBeInTheDocument()
+    expect(screen.getByText('伊朗，朝鲜')).toBeInTheDocument()
     expect(screen.getByText('供应商整机质保 18 个月')).toBeInTheDocument()
     expect(screen.getByText('超声主机')).toBeInTheDocument()
     expect(screen.getAllByText('上架').length).toBeGreaterThan(0)

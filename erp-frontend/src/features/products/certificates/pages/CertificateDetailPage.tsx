@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom'
 import { certificatesApi } from '../../../../api/certificates'
 import { FormSectionCard } from '../../../../components/common'
 import { usePermission } from '../../../../hooks/usePermission'
+import { resolveEnumLabel, useSystemEnumItems } from '../../../../hooks/useSystemEnums'
 import { useUIStore } from '../../../../stores/uiStore'
 import type { CertificateValidityStatus } from '../../../../types/product'
 
@@ -49,6 +50,7 @@ export default function CertificateDetailPage({ certificateId }: CertificateDeta
     queryFn: () => certificatesApi.getById(numericCertificateId as number),
     enabled: numericCertificateId !== null,
   })
+  const certificateTypeQuery = useSystemEnumItems('certificate_type', numericCertificateId !== null)
 
   if (numericCertificateId === null) {
     return (
@@ -118,7 +120,9 @@ export default function CertificateDetailPage({ certificateId }: CertificateDeta
         <Descriptions column={3} size="small" bordered>
           <Descriptions.Item label="证书名称">{certificate.name}</Descriptions.Item>
           <Descriptions.Item label="证书编号">{certificate.certificate_no}</Descriptions.Item>
-          <Descriptions.Item label="证书类型">{certificate.certificate_type}</Descriptions.Item>
+          <Descriptions.Item label="证书类型">
+            {resolveEnumLabel(certificateTypeQuery.data, certificate.certificate_type)}
+          </Descriptions.Item>
           <Descriptions.Item label="发证机构">{certificate.issuing_authority}</Descriptions.Item>
           <Descriptions.Item label="有效期">
             {dayjs(certificate.valid_from).format('YYYY-MM-DD')} ~{' '}
