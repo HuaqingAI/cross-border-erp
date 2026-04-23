@@ -45,6 +45,17 @@ export function resolveEnumLabel(
   return matched?.enum_value ?? fallback?.trim() ?? normalizedValue
 }
 
+export function resolveEnumLabels(
+  items: SystemEnumItem[] | undefined,
+  values: string[] | null | undefined,
+): string {
+  if (!values?.length) {
+    return '—'
+  }
+
+  return values.map((value) => resolveEnumLabel(items, value)).join('、')
+}
+
 export function useSystemEnumItems(
   group: SystemEnumGroupKey,
   enabled = true,

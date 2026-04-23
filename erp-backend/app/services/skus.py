@@ -6,6 +6,7 @@ from app.core.storage import delete_file, get_file_url
 from app.models.sku import SKU, SKUPackageDetail, SKUImage
 from app.models.spu import SPU
 from app.models.user import User
+from app.repositories.enums import EnumRepository
 from app.repositories.skus import SKURepository
 from app.repositories.spus import SPURepository
 from app.schemas.sku import (
@@ -16,23 +17,34 @@ from app.schemas.sku import (
     SKUImageResponse,
     SKUPackageDetailPayload,
     SKUPackageDetailResponse,
+    DEFAULT_SKU_PRODUCT_STATUS,
     SKUListItem,
     SKUListResponse,
-    SKUProductStatus,
     SKUUpdate,
 )
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class SKUService:
+    PRODUCT_TYPE_GROUP = "product_type"
+    PRODUCT_STATUS_GROUP = "product_status"
+    ENUM_VALUE_ERROR_MESSAGES = {
+        PRODUCT_TYPE_GROUP: "产品类型必须为启用的枚举值",
+        PRODUCT_STATUS_GROUP: "产品状态必须为启用的枚举值",
+    }
+
     def __init__(self, db: AsyncSession):
         self.db = db
         self.repo = SKURepository(db)
         self.spu_repo = SPURepository(db)
+        self.enum_repo = EnumRepository(db)
 
     async def create_sku(self, data: SKUCreate, current_user: User):
         await self._ensure_unique_code(data.code)
         spu = await self._get_spu_or_raise(data.spu_id)
+        product_status = data.product_status or DEFAULT_SKU_PRODUCT_STATUS
+        await self._ensure_enabled_enum_key(self.PRODUCT_TYPE_GROUP, data.product_type)
+        await self._ensure_enabled_enum_key(self.PRODUCT_STATUS_GROUP, product_status)
 
         sku = SKU(
             spu_id=spu.id,
@@ -40,9 +52,9 @@ class SKUService:
             name_zh=data.name_zh,
             name_en=data.name_en,
             product_model=data.product_model,
-            product_type=data.product_type.value,
+            product_type=data.product_type,
             core_params=data.core_params,
-            product_status=(data.product_status or SKUProductStatus.ACTIVE).value,
+            product_status=product_status,
             electrical_params=data.electrical_params,
             principle=data.principle,
             usage=data.usage,
@@ -86,6 +98,11 @@ class SKUService:
         keyword: str | None = None,
     ):
         del current_user
+        if product_status is not None:
+            await self._ensure_enabled_enum_key(self.PRODUCT_STATUS_GROUP, product_status)
+        if product_type is not None:
+            await self._ensure_enabled_enum_key(self.PRODUCT_TYPE_GROUP, product_type)
+
         items, total = await self.repo.list_skus(
             page=page,
             page_size=page_size,
@@ -129,11 +146,13 @@ class SKUService:
         if data.product_model is not None:
             sku.product_model = data.product_model
         if data.product_type is not None:
-            sku.product_type = data.product_type.value
+            await self._ensure_enabled_enum_key(self.PRODUCT_TYPE_GROUP, data.product_type)
+            sku.product_type = data.product_type
         if data.core_params is not None:
             sku.core_params = data.core_params
         if data.product_status is not None:
-            sku.product_status = data.product_status.value
+            await self._ensure_enabled_enum_key(self.PRODUCT_STATUS_GROUP, data.product_status)
+            sku.product_status = data.product_status
         if "electrical_params" in data.model_fields_set:
             sku.electrical_params = data.electrical_params
         if data.principle is not None:
@@ -246,6 +265,11 @@ class SKUService:
         if spu is None:
             raise BusinessError("SPU不存在", code="NOT_FOUND", status_code=404)
         return spu
+
+    async def _ensure_enabled_enum_key(self, enum_group: str, enum_key: str) -> None:
+        items = await self.enum_repo.list_enabled_by_group(enum_group)
+        if not any(item.enum_key == enum_key for item in items):
+            raise BusinessError(self.ENUM_VALUE_ERROR_MESSAGES[enum_group])
 
     def _apply_inherited_fields(self, sku: SKU, spu: SPU) -> None:
         sku.level1_category_id = spu.level1_category_id

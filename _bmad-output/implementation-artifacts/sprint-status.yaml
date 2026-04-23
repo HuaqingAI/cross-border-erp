@@ -1,5 +1,5 @@
 # generated: 2026-04-14
-# last_updated: 2026-04-22
+# last_updated: 2026-04-23
 # project: cross-border-erp
 # project_key: NOKEY
 # tracking_system: file-system
@@ -104,5 +104,5 @@ development_status:
   8-3-枚举值配置管理: review
   8-4-价格与资料模块枚举接入: review
   8-5-证书-faq-与-spu-模块枚举接入: review
-  8-6-sku-模块枚举接入与契约收口: backlog
+  8-6-sku-模块枚举接入与契约收口: done
   epic-8-retrospective: optional
