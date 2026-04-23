@@ -16,6 +16,7 @@ from app.models.product_document import (  # noqa: F401
 )
 from app.models.sku import SKU, SKUPackageDetail, SKUImage  # noqa: F401
 from app.models.spu import SPU, SPUInvoiceInfo  # noqa: F401
+from app.models.system_enum import SystemEnum  # noqa: F401
 from app.models.user import User  # noqa: F401
 
 __all__ = [
@@ -36,5 +37,6 @@ __all__ = [
     "SKUImage",
     "SPU",
     "SPUInvoiceInfo",
+    "SystemEnum",
     "User",
 ]

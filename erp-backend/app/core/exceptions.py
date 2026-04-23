@@ -31,6 +31,12 @@ def translate_integrity_error(exc: IntegrityError) -> BusinessError | None:
     ):
         return BusinessError("同一 SKU 同一国家/地区不可重复设置价格")
 
+    if (
+        "ix_enums_active_group_key" in message
+        or "enums.active_enum_group, enums.active_enum_key" in message
+    ):
+        return BusinessError("同一枚举组下枚举编码不可重复")
+
     return None
 
 
