@@ -54,7 +54,6 @@ jobs:
         run: cd erp-frontend && npm run build
 
   docker-build:
-    needs: [backend-test, frontend-test]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
