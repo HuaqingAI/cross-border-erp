@@ -7,6 +7,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { categoriesApi } from '../../api/categories'
 import { certificatesApi } from '../../api/certificates'
 import { documentsApi } from '../../api/documents'
+import { enumsApi } from '../../api/enums'
 import { faqsApi } from '../../api/faqs'
 import { pricesApi } from '../../api/prices'
 import { skusApi } from '../../api/skus'
@@ -22,6 +23,7 @@ import type {
   PriceDetail,
   Sku,
   Spu,
+  SystemEnumItem,
 } from '../../types/product'
 
 const navigate = vi.fn()
@@ -67,6 +69,12 @@ vi.mock('../../api/certificates', () => ({
 
 vi.mock('../../api/documents', () => ({
   documentsApi: {
+    list: vi.fn(),
+  },
+}))
+
+vi.mock('../../api/enums', () => ({
+  enumsApi: {
     list: vi.fn(),
   },
 }))
@@ -431,6 +439,32 @@ const effectivePrice: PriceDetail = {
   ],
 }
 
+function enumItem(group: string, key: string, value: string): SystemEnumItem {
+  return {
+    id: Number(`${group.length}${key.length}${value.length}`),
+    enum_group: group,
+    enum_key: key,
+    enum_value: value,
+    description: null,
+    sort_order: 10,
+    is_enabled: true,
+    is_protected: false,
+    created_at: '2026-04-23T00:00:00Z',
+    updated_at: '2026-04-23T00:00:00Z',
+  }
+}
+
+const enumFixtures: Record<string, SystemEnumItem[]> = {
+  product_type: [enumItem('product_type', '主品', '主产品')],
+  product_status: [enumItem('product_status', '上架', '已上架')],
+  unit: [enumItem('unit', '台', '台')],
+  package_type: [enumItem('package_type', '纸箱', '纸箱包装')],
+  country_region: [
+    enumItem('country_region', 'IR', '伊朗'),
+    enumItem('country_region', 'KP', '朝鲜'),
+  ],
+}
+
 beforeAll(() => {
   Object.defineProperty(window, 'matchMedia', {
     writable: true,
@@ -466,6 +500,7 @@ beforeEach(() => {
   vi.clearAllMocks()
 
   vi.mocked(categoriesApi.getTree).mockResolvedValue(categoryTree)
+  vi.mocked(enumsApi.list).mockImplementation(async (params) => enumFixtures[params.group] ?? [])
   vi.mocked(skusApi.getById).mockResolvedValue(skuDetail)
   vi.mocked(spusApi.getById).mockResolvedValue(inheritedSpu)
   vi.mocked(certificatesApi.list).mockImplementation(async (params) => ({
@@ -571,8 +606,11 @@ describe('SKUDetailPage', () => {
 
     expect((await screen.findAllByText('超声刀 Alpha')).length).toBeGreaterThan(0)
     expect(screen.getAllByText('SKU001').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('上架').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('已上架').length).toBeGreaterThan(0)
     expect(screen.getByText('医疗设备 / 影像设备 / 超声设备')).toBeInTheDocument()
+    expect(screen.getByText('主产品')).toBeInTheDocument()
+    expect(screen.getByText('伊朗、朝鲜')).toBeInTheDocument()
+    expect(screen.getByText('纸箱包装')).toBeInTheDocument()
     expect(await screen.findByText('123.45')).toBeInTheDocument()
     expect(screen.getByText('核心参数A')).toBeInTheDocument()
     expect(screen.getByText('sku1.png')).toBeInTheDocument()

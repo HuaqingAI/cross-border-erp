@@ -22,6 +22,7 @@ import { spusApi } from '../../../../api/spus'
 import { FixedActionBar, FormSectionCard, InheritedField } from '../../../../components/common'
 import FormGrid from '../../../../components/form/FormGrid'
 import { usePermission } from '../../../../hooks/usePermission'
+import { buildEnumOptions, resolveEnumLabels, useSystemEnumItems } from '../../../../hooks/useSystemEnums'
 import { useUIStore } from '../../../../stores/uiStore'
 import type {
   CategoryTreeNode,
@@ -71,25 +72,6 @@ export interface SkuFormValues {
   customs_info_ready: boolean
 }
 
-const PRODUCT_TYPE_OPTIONS: Array<{ label: SkuProductType; value: SkuProductType }> = [
-  { label: '主品', value: '主品' },
-  { label: '配件', value: '配件' },
-  { label: '耗材', value: '耗材' },
-]
-
-const PRODUCT_STATUS_OPTIONS: Array<{ label: SkuProductStatus; value: SkuProductStatus }> = [
-  { label: '上架', value: '上架' },
-  { label: '下架可售', value: '下架可售' },
-  { label: '下架不可售', value: '下架不可售' },
-  { label: '临拓', value: '临拓' },
-]
-
-const PACKAGE_TYPE_OPTIONS: Array<{ label: string; value: string }> = [
-  { label: '纸箱', value: '纸箱' },
-  { label: '木箱', value: '木箱' },
-  { label: '其他', value: '其他' },
-]
-
 const DEFAULT_FORM_VALUES: SkuFormValues = {
   spu_id: undefined,
   code: '',
@@ -98,7 +80,7 @@ const DEFAULT_FORM_VALUES: SkuFormValues = {
   product_model: '',
   product_type: undefined,
   core_params: '',
-  product_status: '上架',
+  product_status: undefined,
   electrical_params: null,
   principle: '',
   usage: '',
@@ -333,6 +315,12 @@ export function calculatePackageVolume(detail: {
   return Number(((length * width * height) / 1_000_000).toFixed(6))
 }
 
+export function resolveCreateDefaultProductStatus(
+  productStatusOptions: Array<{ value: string; label?: string }>,
+): SkuProductStatus | undefined {
+  return productStatusOptions.some((option) => option.value === '上架') ? '上架' : undefined
+}
+
 export async function isSkuCodeTaken(code: string): Promise<boolean> {
   const trimmed = code.trim()
   if (!trimmed) {
@@ -414,36 +402,17 @@ export default function SKUFormPage({ mode, skuId }: SKUFormPageProps) {
 
   const selectedSpuId = Form.useWatch('spu_id', form)
   const packageDetailsValue = Form.useWatch('package_details', form) ?? []
+  const productTypeQuery = useSystemEnumItems('product_type')
+  const productStatusQuery = useSystemEnumItems('product_status')
+  const unitQuery = useSystemEnumItems('unit')
+  const packageTypeQuery = useSystemEnumItems('package_type')
+  const countryRegionQuery = useSystemEnumItems('country_region')
 
   const selectedSpuQuery = useQuery({
     queryKey: ['spu-detail-for-sku-form', selectedSpuId],
     queryFn: () => spusApi.getById(selectedSpuId as number),
     enabled: typeof selectedSpuId === 'number',
   })
-
-  const formInitialValues = useMemo(
-    () => (isEditMode && detailQuery.data ? toSkuFormValues(detailQuery.data) : DEFAULT_FORM_VALUES),
-    [detailQuery.data, isEditMode],
-  )
-
-  useEffect(() => {
-    form.setFieldsValue(formInitialValues)
-  }, [form, formInitialValues])
-
-  useEffect(() => {
-    if (isEditMode && detailQuery.data) {
-      setExistingImages(detailQuery.data.images ?? [])
-      setPendingImages([])
-      setRemovedImageIds([])
-      return
-    }
-
-    if (!isEditMode) {
-      setExistingImages([])
-      setPendingImages([])
-      setRemovedImageIds([])
-    }
-  }, [detailQuery.data, isEditMode])
 
   const inheritedSpu = useMemo(() => {
     if (selectedSpuQuery.data) {
@@ -476,6 +445,80 @@ export default function SKUFormPage({ mode, skuId }: SKUFormPageProps) {
 
   const spuOptions = mergeSpuOptions(spuOptionsQuery.data?.items ?? [], detailQuery.data)
   const imageAltText = Form.useWatch('name_zh', form) || 'SKU图片'
+  const productTypeOptions = useMemo(
+    () =>
+      buildEnumOptions(
+        productTypeQuery.data,
+        detailQuery.data?.product_type ? [{ value: detailQuery.data.product_type }] : [],
+      ),
+    [detailQuery.data?.product_type, productTypeQuery.data],
+  )
+  const productStatusOptions = useMemo(
+    () =>
+      buildEnumOptions(
+        productStatusQuery.data,
+        detailQuery.data?.product_status ? [{ value: detailQuery.data.product_status }] : [],
+      ),
+    [detailQuery.data?.product_status, productStatusQuery.data],
+  )
+  const unitOptions = useMemo(
+    () =>
+      buildEnumOptions(
+        unitQuery.data,
+        detailQuery.data?.unit ? [{ value: detailQuery.data.unit }] : [],
+      ),
+    [detailQuery.data?.unit, unitQuery.data],
+  )
+  const packageTypeOptions = useMemo(
+    () =>
+      buildEnumOptions(
+        packageTypeQuery.data,
+        detailQuery.data?.package_type ? [{ value: detailQuery.data.package_type }] : [],
+      ),
+    [detailQuery.data?.package_type, packageTypeQuery.data],
+  )
+  const inheritedRestrictedCountriesText = resolveEnumLabels(
+    countryRegionQuery.data,
+    inheritedSpu?.restricted_countries,
+  )
+
+  const formInitialValues = useMemo(
+    () =>
+      isEditMode && detailQuery.data
+        ? toSkuFormValues(detailQuery.data)
+        : DEFAULT_FORM_VALUES,
+    [detailQuery.data, isEditMode],
+  )
+
+  useEffect(() => {
+    form.setFieldsValue(formInitialValues)
+  }, [form, formInitialValues])
+
+  useEffect(() => {
+    if (isEditMode) {
+      return
+    }
+
+    const defaultProductStatus = resolveCreateDefaultProductStatus(productStatusOptions)
+    if (defaultProductStatus && !form.getFieldValue('product_status')) {
+      form.setFieldsValue({ product_status: defaultProductStatus })
+    }
+  }, [form, isEditMode, productStatusOptions])
+
+  useEffect(() => {
+    if (isEditMode && detailQuery.data) {
+      setExistingImages(detailQuery.data.images ?? [])
+      setPendingImages([])
+      setRemovedImageIds([])
+      return
+    }
+
+    if (!isEditMode) {
+      setExistingImages([])
+      setPendingImages([])
+      setRemovedImageIds([])
+    }
+  }, [detailQuery.data, isEditMode])
 
   const leaveCurrentTab = async () => {
     openTab({ key: '/products/skus', label: 'SKU管理', closable: true })
@@ -828,7 +871,7 @@ export default function SKUFormPage({ mode, skuId }: SKUFormPageProps) {
             </Form.Item>
 
             <Form.Item label="禁止经营国家">
-              <InheritedField value={(inheritedSpu?.restricted_countries ?? []).join('、') || '—'} />
+              <InheritedField value={inheritedRestrictedCountriesText} />
             </Form.Item>
 
             <Form.Item label="客户质保期(月)">
@@ -842,23 +885,31 @@ export default function SKUFormPage({ mode, skuId }: SKUFormPageProps) {
             <Form.Item label="产品类型" name="product_type" rules={[{ required: true, message: '请选择产品类型' }]}>
               <Select
                 allowClear
-                options={PRODUCT_TYPE_OPTIONS}
+                options={productTypeOptions}
                 placeholder="请选择产品类型"
                 disabled={!canEditMainFields}
+                loading={productTypeQuery.isLoading}
               />
             </Form.Item>
 
             <Form.Item label="产品状态" name="product_status" rules={[{ required: true, message: '请选择产品状态' }]}>
               <Select
                 allowClear
-                options={PRODUCT_STATUS_OPTIONS}
+                options={productStatusOptions}
                 placeholder="请选择产品状态"
                 disabled={!canEditMainFields}
+                loading={productStatusQuery.isLoading}
               />
             </Form.Item>
 
-            <Form.Item label="单位" name="unit" rules={[{ required: true, message: '请输入单位' }]}>
-              <Input placeholder="请输入单位" disabled={!canEditMainFields} />
+            <Form.Item label="单位" name="unit" rules={[{ required: true, message: '请选择单位' }]}>
+              <Select
+                allowClear
+                options={unitOptions}
+                placeholder="请选择单位"
+                disabled={!canEditMainFields}
+                loading={unitQuery.isLoading}
+              />
             </Form.Item>
 
             <Form.Item label="电气参数" name="electrical_params">
@@ -906,9 +957,10 @@ export default function SKUFormPage({ mode, skuId }: SKUFormPageProps) {
             <Form.Item label="包装类型" name="package_type">
               <Select
                 allowClear
-                options={PACKAGE_TYPE_OPTIONS}
+                options={packageTypeOptions}
                 placeholder="请选择包装类型"
                 disabled={!canEditMainFields}
+                loading={packageTypeQuery.isLoading}
               />
             </Form.Item>
 

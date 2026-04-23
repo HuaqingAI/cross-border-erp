@@ -5,10 +5,11 @@ from decimal import Decimal
 
 import pytest
 from httpx import AsyncClient
-from sqlalchemy import Column, DateTime, Integer, MetaData, Table, insert
+from sqlalchemy import Column, DateTime, Integer, MetaData, Table, insert, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import hash_password
+from app.models.system_enum import SystemEnum
 from app.models.user import User, UserRole
 
 
@@ -32,6 +33,47 @@ async def _login_as_role(
         json={"username": username, "password": "Test123!"},
     )
     assert response.status_code == 200
+    await _seed_sku_enums(db_session)
+
+
+async def _seed_enum(
+    db_session: AsyncSession,
+    *,
+    enum_group: str,
+    enum_key: str,
+    sort_order: int = 0,
+) -> None:
+    existing = await db_session.scalar(
+        select(SystemEnum).where(
+            SystemEnum.enum_group == enum_group,
+            SystemEnum.enum_key == enum_key,
+            SystemEnum.deleted_at.is_(None),
+        )
+    )
+    if existing is not None:
+        existing.is_enabled = True
+        existing.sort_order = sort_order
+        db_session.add(existing)
+        await db_session.commit()
+        return
+
+    db_session.add(
+        SystemEnum(
+            enum_group=enum_group,
+            enum_key=enum_key,
+            enum_value=enum_key,
+            sort_order=sort_order,
+            is_enabled=True,
+        )
+    )
+    await db_session.commit()
+
+
+async def _seed_sku_enums(db_session: AsyncSession) -> None:
+    await _seed_enum(db_session, enum_group="product_type", enum_key="主品")
+    await _seed_enum(db_session, enum_group="product_type", enum_key="耗材")
+    await _seed_enum(db_session, enum_group="product_status", enum_key="上架")
+    await _seed_enum(db_session, enum_group="product_status", enum_key="下架不可售")
 
 
 async def _create_category_tree(

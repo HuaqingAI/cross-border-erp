@@ -6,7 +6,7 @@ import userEvent from '@testing-library/user-event'
 import SKUListPage, { buildQueryParams } from '../../features/products/skus/pages/SKUListPage'
 import { useAuthStore } from '../../stores/authStore'
 import { useUIStore } from '../../stores/uiStore'
-import type { CategoryTreeNode, PaginatedResult, SkuListItem } from '../../types/product'
+import type { CategoryTreeNode, PaginatedResult, SkuListItem, SystemEnumItem } from '../../types/product'
 
 const navigate = vi.fn()
 
@@ -65,6 +65,32 @@ const skuItems: SkuListItem[] = [
 
 const list = vi.fn()
 
+function enumItem(group: string, key: string, value: string, isEnabled = true): SystemEnumItem {
+  return {
+    id: Number(`${group.length}${key.length}${value.length}`),
+    enum_group: group,
+    enum_key: key,
+    enum_value: value,
+    description: null,
+    sort_order: 10,
+    is_enabled: isEnabled,
+    is_protected: false,
+    created_at: '2026-04-23T00:00:00Z',
+    updated_at: '2026-04-23T00:00:00Z',
+  }
+}
+
+const enumFixtures: Record<string, SystemEnumItem[]> = {
+  product_status: [
+    enumItem('product_status', '上架', '已上架'),
+    enumItem('product_status', '下架不可售', '不可售'),
+  ],
+  product_type: [
+    enumItem('product_type', '主品', '主产品'),
+    enumItem('product_type', '配件', '配件'),
+  ],
+}
+
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom')
   return {
@@ -96,6 +122,13 @@ vi.mock('@tanstack/react-query', () => ({
           page: 1,
           page_size: 20,
         } as PaginatedResult<SkuListItem>,
+        isLoading: false,
+      }
+    }
+
+    if (key === 'system-enums' && typeof params === 'string') {
+      return {
+        data: enumFixtures[params] ?? [],
         isLoading: false,
       }
     }
@@ -193,7 +226,7 @@ describe('SKUListPage', () => {
     expect(screen.getByRole('button', { name: /查\s*询/ })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /新\s*增/ })).toBeInTheDocument()
     expect(screen.getByText('SPU001')).toBeInTheDocument()
-    expect(screen.getByText('下架不可售')).toBeInTheDocument()
+    expect(screen.getByText('不可售')).toBeInTheDocument()
     expect(
       screen.getByText(
         (_, element) =>
@@ -268,6 +301,20 @@ describe('SKUListPage', () => {
         keyword: undefined,
       }),
     )
+  })
+
+  it('产品状态和产品类型筛选项消费枚举中心启用选项', async () => {
+    const user = userEvent.setup()
+    renderSKUListPage('product_dept')
+
+    await screen.findByText('超声刀 Alpha')
+    await user.click(screen.getByLabelText('产品状态'))
+    expect(await screen.findByText('已上架')).toBeInTheDocument()
+    expect(screen.getAllByText('不可售').length).toBeGreaterThan(0)
+
+    await user.keyboard('{Escape}')
+    await user.click(screen.getByLabelText('产品类型'))
+    expect(await screen.findByText('主产品')).toBeInTheDocument()
   })
 
   it('只读角色不可见新增和编辑入口', async () => {

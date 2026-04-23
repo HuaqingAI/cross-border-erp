@@ -4,9 +4,11 @@ import uuid
 
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import hash_password
+from app.models.system_enum import SystemEnum
 from app.models.user import User, UserRole
 
 
@@ -30,6 +32,53 @@ async def _login_as_role(
         json={"username": username, "password": "Test123!"},
     )
     assert response.status_code == 200
+    await _seed_sku_enums(db_session)
+
+
+async def _seed_enum(
+    db_session: AsyncSession,
+    *,
+    enum_group: str,
+    enum_key: str,
+    enum_value: str | None = None,
+    sort_order: int = 0,
+    is_enabled: bool = True,
+) -> SystemEnum:
+    existing = await db_session.scalar(
+        select(SystemEnum).where(
+            SystemEnum.enum_group == enum_group,
+            SystemEnum.enum_key == enum_key,
+            SystemEnum.deleted_at.is_(None),
+        )
+    )
+    if existing is not None:
+        existing.enum_value = enum_value or enum_key
+        existing.sort_order = sort_order
+        existing.is_enabled = is_enabled
+        db_session.add(existing)
+        await db_session.commit()
+        await db_session.refresh(existing)
+        return existing
+
+    entity = SystemEnum(
+        enum_group=enum_group,
+        enum_key=enum_key,
+        enum_value=enum_value or enum_key,
+        description=None,
+        sort_order=sort_order,
+        is_enabled=is_enabled,
+    )
+    db_session.add(entity)
+    await db_session.commit()
+    await db_session.refresh(entity)
+    return entity
+
+
+async def _seed_sku_enums(db_session: AsyncSession) -> None:
+    await _seed_enum(db_session, enum_group="product_type", enum_key="主品")
+    await _seed_enum(db_session, enum_group="product_type", enum_key="耗材")
+    await _seed_enum(db_session, enum_group="product_status", enum_key="上架")
+    await _seed_enum(db_session, enum_group="product_status", enum_key="下架不可售")
 
 
 async def _create_category_tree(client: AsyncClient) -> tuple[int, int, int]:
@@ -205,6 +254,128 @@ async def test_product_user_can_create_sku_with_spu_inheritance(
     assert data["customs_hscode"] is None
     assert data["customs_info_ready"] is False
     assert data["package_details"][0]["net_weight_kg"] == "1.200"
+
+
+@pytest.mark.asyncio
+async def test_sku_accepts_enum_center_product_type_and_status_keys(
+    client: AsyncClient,
+    db_session: AsyncSession,
+):
+    await _login_as_role(client, db_session, UserRole.PRODUCT_DEPT)
+    await _seed_enum(db_session, enum_group="product_type", enum_key="备件")
+    await _seed_enum(db_session, enum_group="product_status", enum_key="试销")
+    spu = await _create_spu(
+        client,
+        code="SPU-SKU-ENUM",
+        name="枚举平台",
+        supplier_name="供应商枚举",
+        restricted_countries=["US"],
+    )
+
+    create_response = await client.post(
+        "/api/v1/skus",
+        json=_sku_payload(
+            spu_id=spu["id"],
+            code="SKU-ENUM",
+            name_zh="枚举 SKU",
+            name_en="Enum SKU",
+            product_type="备件",
+            product_status="试销",
+        ),
+    )
+
+    assert create_response.status_code == 201
+    data = create_response.json()
+    assert data["product_type"] == "备件"
+    assert data["product_status"] == "试销"
+
+    list_response = await client.get(
+        "/api/v1/skus",
+        params={
+            "product_type": "备件",
+            "product_status": "试销",
+        },
+    )
+
+    assert list_response.status_code == 200
+    list_data = list_response.json()
+    assert list_data["total"] == 1
+    assert list_data["items"][0]["code"] == "SKU-ENUM"
+
+
+@pytest.mark.asyncio
+async def test_sku_rejects_product_type_or_status_outside_enabled_enums(
+    client: AsyncClient,
+    db_session: AsyncSession,
+):
+    await _login_as_role(client, db_session, UserRole.PRODUCT_DEPT)
+    await _seed_enum(db_session, enum_group="product_type", enum_key="主品")
+    await _seed_enum(db_session, enum_group="product_status", enum_key="上架")
+    await _seed_enum(
+        db_session,
+        enum_group="product_status",
+        enum_key="停用状态",
+        is_enabled=False,
+    )
+    spu = await _create_spu(
+        client,
+        code="SPU-SKU-ENUM-INVALID",
+        name="枚举校验平台",
+        supplier_name="供应商枚举",
+        restricted_countries=["US"],
+    )
+
+    invalid_type_response = await client.post(
+        "/api/v1/skus",
+        json=_sku_payload(
+            spu_id=spu["id"],
+            code="SKU-INVALID-TYPE",
+            name_zh="非法类型 SKU",
+            name_en="Invalid Type SKU",
+            product_type="不存在类型",
+        ),
+    )
+    assert invalid_type_response.status_code == 400
+    assert invalid_type_response.json()["message"] == "产品类型必须为启用的枚举值"
+
+    disabled_status_response = await client.post(
+        "/api/v1/skus",
+        json=_sku_payload(
+            spu_id=spu["id"],
+            code="SKU-DISABLED-STATUS",
+            name_zh="停用状态 SKU",
+            name_en="Disabled Status SKU",
+            product_status="停用状态",
+        ),
+    )
+    assert disabled_status_response.status_code == 400
+    assert disabled_status_response.json()["message"] == "产品状态必须为启用的枚举值"
+
+    valid_response = await client.post(
+        "/api/v1/skus",
+        json=_sku_payload(
+            spu_id=spu["id"],
+            code="SKU-VALID-ENUM",
+            name_zh="有效枚举 SKU",
+            name_en="Valid Enum SKU",
+        ),
+    )
+    assert valid_response.status_code == 201
+    sku_id = valid_response.json()["id"]
+
+    invalid_update_response = await client.patch(
+        f"/api/v1/skus/{sku_id}",
+        json={"product_status": "不存在状态"},
+    )
+    assert invalid_update_response.status_code == 400
+    assert invalid_update_response.json()["message"] == "产品状态必须为启用的枚举值"
+
+    invalid_filter_response = await client.get(
+        "/api/v1/skus",
+        params={"product_type": "不存在类型"},
+    )
+    assert invalid_filter_response.status_code == 400
+    assert invalid_filter_response.json()["message"] == "产品类型必须为启用的枚举值"
 
 
 @pytest.mark.asyncio

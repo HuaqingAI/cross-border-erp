@@ -131,9 +131,9 @@ export interface Sku {
   updated_at: string
 }
 
-export type SkuProductType = '主品' | '配件' | '耗材'
+export type SkuProductType = string
 
-export type SkuProductStatus = '上架' | '下架可售' | '下架不可售' | '临拓'
+export type SkuProductStatus = string
 
 export interface SkuListItem {
   id: number

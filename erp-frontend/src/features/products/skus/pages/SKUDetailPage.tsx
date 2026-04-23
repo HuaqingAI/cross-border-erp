@@ -15,6 +15,7 @@ import { skusApi } from '../../../../api/skus'
 import { spusApi } from '../../../../api/spus'
 import { FormSectionCard, InheritedField } from '../../../../components/common'
 import { usePermission } from '../../../../hooks/usePermission'
+import { resolveEnumLabel, resolveEnumLabels, useSystemEnumItems } from '../../../../hooks/useSystemEnums'
 import { useUIStore } from '../../../../stores/uiStore'
 import type {
   CategoryTreeNode,
@@ -156,7 +157,12 @@ async function fetchAllPages<T>(
   return items
 }
 
-function buildSummaryCard(sku: Sku) {
+function buildSummaryCard(
+  sku: Sku,
+  productStatusItems: ReturnType<typeof useSystemEnumItems>['data'],
+) {
+  const productStatusLabel = resolveEnumLabel(productStatusItems, sku.product_status)
+
   return (
     <section
       style={{
@@ -183,7 +189,7 @@ function buildSummaryCard(sku: Sku) {
         </div>
         <div>
           <div style={{ color: 'rgba(0,0,0,0.45)', fontSize: 12, marginBottom: 6 }}>产品状态</div>
-          <Tag color={getSkuStatusColor(sku.product_status)}>{sku.product_status}</Tag>
+          <Tag color={getSkuStatusColor(sku.product_status)}>{productStatusLabel}</Tag>
         </div>
         <div>
           <div style={{ color: 'rgba(0,0,0,0.45)', fontSize: 12, marginBottom: 6 }}>SPU编码</div>
@@ -421,6 +427,12 @@ export default function SKUDetailPage({ skuId }: SKUDetailPageProps) {
     retry: false,
   })
 
+  const productTypeQuery = useSystemEnumItems('product_type', numericSkuId !== null)
+  const productStatusQuery = useSystemEnumItems('product_status', numericSkuId !== null)
+  const unitQuery = useSystemEnumItems('unit', numericSkuId !== null)
+  const packageTypeQuery = useSystemEnumItems('package_type', numericSkuId !== null)
+  const countryRegionQuery = useSystemEnumItems('country_region', numericSkuId !== null)
+
   const openRouteTab = (path: string, label: string) => {
     openTab({ key: path, label, closable: true })
     navigate(path)
@@ -619,6 +631,11 @@ export default function SKUDetailPage({ skuId }: SKUDetailPageProps) {
   }
 
   const sku = detailQuery.data
+  const productTypeLabel = resolveEnumLabel(productTypeQuery.data, sku.product_type)
+  const productStatusLabel = resolveEnumLabel(productStatusQuery.data, sku.product_status)
+  const unitLabel = resolveEnumLabel(unitQuery.data, sku.unit)
+  const packageTypeLabel = resolveEnumLabel(packageTypeQuery.data, sku.package_type)
+  const restrictedCountriesText = resolveEnumLabels(countryRegionQuery.data, sku.restricted_countries)
   const categoryIds = [sku.level1_category_id, sku.level2_category_id, sku.level3_category_id]
   const categoryPath = categoriesQuery.isError
     ? formatCategoryPathFallback(categoryIds)
@@ -655,9 +672,9 @@ export default function SKUDetailPage({ skuId }: SKUDetailPageProps) {
           <Descriptions.Item label="SKU中文名称">{sku.name_zh}</Descriptions.Item>
           <Descriptions.Item label="SKU英文名称">{sku.name_en}</Descriptions.Item>
           <Descriptions.Item label="产品型号">{sku.product_model}</Descriptions.Item>
-          <Descriptions.Item label="产品类型">{sku.product_type}</Descriptions.Item>
+          <Descriptions.Item label="产品类型">{productTypeLabel}</Descriptions.Item>
           <Descriptions.Item label="产品状态">
-            <Tag color={getSkuStatusColor(sku.product_status)}>{sku.product_status}</Tag>
+            <Tag color={getSkuStatusColor(sku.product_status)}>{productStatusLabel}</Tag>
           </Descriptions.Item>
           <Descriptions.Item label="SPU">{`${sku.spu_code} | ${sku.spu_name}`}</Descriptions.Item>
           <Descriptions.Item label="创建时间">{formatDateTime(sku.created_at)}</Descriptions.Item>
@@ -677,7 +694,7 @@ export default function SKUDetailPage({ skuId }: SKUDetailPageProps) {
             <InheritedField value={sku.customer_warranty_months} bordered={false} />
           </Descriptions.Item>
           <Descriptions.Item label="禁止经营国家" span={2}>
-            <InheritedField value={sku.restricted_countries.join('、') || '—'} bordered={false} />
+            <InheritedField value={restrictedCountriesText} bordered={false} />
           </Descriptions.Item>
           {permission.canViewPurchasePrice ? (
             <Descriptions.Item label="采购价（CNY）" span={2}>
@@ -716,7 +733,7 @@ export default function SKUDetailPage({ skuId }: SKUDetailPageProps) {
       <FormSectionCard title="特殊属性">
         <Descriptions column={2} size="small" bordered>
           <Descriptions.Item label="材质">{sku.material || '—'}</Descriptions.Item>
-          <Descriptions.Item label="单位">{sku.unit}</Descriptions.Item>
+          <Descriptions.Item label="单位">{unitLabel}</Descriptions.Item>
           <Descriptions.Item label="是否带插头">{formatBoolean(sku.has_plug)}</Descriptions.Item>
           <Descriptions.Item label="是否特殊">{formatBoolean(sku.is_special)}</Descriptions.Item>
           <Descriptions.Item label="特殊说明" span={2}>
@@ -727,7 +744,7 @@ export default function SKUDetailPage({ skuId }: SKUDetailPageProps) {
 
       <FormSectionCard title="包装信息">
         <Descriptions column={2} size="small" bordered>
-          <Descriptions.Item label="包装类型">{sku.package_type || '—'}</Descriptions.Item>
+          <Descriptions.Item label="包装类型">{packageTypeLabel}</Descriptions.Item>
           <Descriptions.Item label="装箱数量">{sku.package_quantity ?? '—'}</Descriptions.Item>
         </Descriptions>
       </FormSectionCard>
@@ -846,7 +863,7 @@ export default function SKUDetailPage({ skuId }: SKUDetailPageProps) {
               <Descriptions.Item label="SKU编码">{sku.code}</Descriptions.Item>
               <Descriptions.Item label="SKU中文名称">{sku.name_zh}</Descriptions.Item>
               <Descriptions.Item label="产品状态">
-                <Tag color={getSkuStatusColor(sku.product_status)}>{sku.product_status}</Tag>
+                <Tag color={getSkuStatusColor(sku.product_status)}>{productStatusLabel}</Tag>
               </Descriptions.Item>
               <Descriptions.Item label="价格状态">
                 {hasEffectivePriceLoadError ? (
@@ -903,7 +920,7 @@ export default function SKUDetailPage({ skuId }: SKUDetailPageProps) {
         </Space>
       </div>
 
-      {buildSummaryCard(sku)}
+      {buildSummaryCard(sku, productStatusQuery.data)}
 
       <div
         style={{

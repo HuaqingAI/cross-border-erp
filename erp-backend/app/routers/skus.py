@@ -11,8 +11,6 @@ from app.schemas.sku import (
     SKUDetail,
     SKUImageCreate,
     SKUListResponse,
-    SKUProductStatus,
-    SKUProductType,
     SKUUpdate,
 )
 from app.services.skus import SKUService
@@ -43,8 +41,8 @@ async def list_skus(
     level2_category_id: int | None = Query(default=None, ge=1),
     level3_category_id: int | None = Query(default=None, ge=1),
     supplier_name: str | None = Query(default=None),
-    product_status: SKUProductStatus | None = Query(default=None),
-    product_type: SKUProductType | None = Query(default=None),
+    product_status: str | None = Query(default=None, min_length=1, max_length=50),
+    product_type: str | None = Query(default=None, min_length=1, max_length=50),
     keyword: str | None = Query(default=None),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -59,8 +57,8 @@ async def list_skus(
         level2_category_id=level2_category_id,
         level3_category_id=level3_category_id,
         supplier_name=supplier_name,
-        product_status=product_status.value if product_status else None,
-        product_type=product_type.value if product_type else None,
+        product_status=product_status,
+        product_type=product_type,
         keyword=keyword,
     )
 

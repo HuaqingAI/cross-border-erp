@@ -5,18 +5,20 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { categoriesApi } from '../../api/categories'
+import { enumsApi } from '../../api/enums'
 import { skusApi } from '../../api/skus'
 import { spusApi } from '../../api/spus'
 import SKUFormPage, {
   calculatePackageVolume,
   isSkuCodeTaken,
+  resolveCreateDefaultProductStatus,
   toSkuCustomsPayload,
   toSkuFormValues,
   toSkuMutationPayload,
 } from '../../features/products/skus/pages/SKUFormPage'
 import { useAuthStore } from '../../stores/authStore'
 import { useUIStore } from '../../stores/uiStore'
-import type { CategoryTreeNode, Sku, Spu } from '../../types/product'
+import type { CategoryTreeNode, Sku, Spu, SystemEnumItem } from '../../types/product'
 
 const navigate = vi.fn()
 const drop = vi.fn()
@@ -38,6 +40,12 @@ vi.mock('react-activation', () => ({
 vi.mock('../../api/categories', () => ({
   categoriesApi: {
     getTree: vi.fn(),
+  },
+}))
+
+vi.mock('../../api/enums', () => ({
+  enumsApi: {
+    list: vi.fn(),
   },
 }))
 
@@ -171,6 +179,44 @@ const skuDetail: Sku = {
   updated_at: '2026-04-18T10:00:00Z',
 }
 
+function enumItem(group: string, key: string, value: string, isEnabled = true): SystemEnumItem {
+  return {
+    id: Number(`${group.length}${key.length}${value.length}`),
+    enum_group: group,
+    enum_key: key,
+    enum_value: value,
+    description: null,
+    sort_order: 10,
+    is_enabled: isEnabled,
+    is_protected: false,
+    created_at: '2026-04-23T00:00:00Z',
+    updated_at: '2026-04-23T00:00:00Z',
+  }
+}
+
+const enumFixtures: Record<string, SystemEnumItem[]> = {
+  product_type: [
+    enumItem('product_type', '主品', '主产品'),
+    enumItem('product_type', '配件', '配件'),
+  ],
+  product_status: [
+    enumItem('product_status', '上架', '已上架'),
+    enumItem('product_status', '下架不可售', '不可售'),
+  ],
+  unit: [
+    enumItem('unit', '台', '台'),
+    enumItem('unit', '件', '件'),
+  ],
+  package_type: [
+    enumItem('package_type', '纸箱', '纸箱包装'),
+    enumItem('package_type', '木箱', '木箱包装'),
+  ],
+  country_region: [
+    enumItem('country_region', 'US', '美国'),
+    enumItem('country_region', 'DE', '德国'),
+  ],
+}
+
 function createQueryClient() {
   return new QueryClient({
     defaultOptions: {
@@ -245,6 +291,7 @@ beforeEach(() => {
   vi.spyOn(window.console, 'error').mockImplementation(() => {})
 
   vi.mocked(categoriesApi.getTree).mockResolvedValue(categoryTree)
+  vi.mocked(enumsApi.list).mockImplementation(async (params) => enumFixtures[params.group] ?? [])
   vi.mocked(spusApi.list).mockResolvedValue({
     items: [spuDetail],
     total: 1,
@@ -341,6 +388,21 @@ describe('SKUFormPage', () => {
         height_cm: 10,
       }),
     ).toBe(0.006)
+  })
+
+  it('resolveCreateDefaultProductStatus 仅在上架仍为启用枚举选项时返回默认状态', () => {
+    expect(
+      resolveCreateDefaultProductStatus([
+        { label: '已上架', value: '上架' },
+        { label: '不可售', value: '下架不可售' },
+      ]),
+    ).toBe('上架')
+
+    expect(
+      resolveCreateDefaultProductStatus([
+        { label: '不可售', value: '下架不可售' },
+      ]),
+    ).toBeUndefined()
   })
 
   it('toSkuCustomsPayload 与 toSkuFormValues 会保留报关和包装字段', () => {
@@ -450,6 +512,48 @@ describe('SKUFormPage', () => {
     expect(navigate).toHaveBeenCalledWith('/products/skus')
     expect(drop).toHaveBeenCalledWith('/products/skus/new')
     expect(useUIStore.getState().tabs.some((tab) => tab.key === '/products/skus/new')).toBe(false)
+  })
+
+  it('新增态产品类型、产品状态、单位和包装类型均读取枚举中心选项', async () => {
+    const user = userEvent.setup()
+    renderSKUFormPage({
+      mode: 'create',
+      skuId: null,
+      currentPath: '/products/skus/new',
+      role: 'product_dept',
+    })
+
+    await screen.findByText('基础信息')
+    await user.click(screen.getByLabelText('产品类型'))
+    expect(await screen.findByText('主产品')).toBeInTheDocument()
+
+    await user.keyboard('{Escape}')
+    await user.click(screen.getByLabelText('产品状态'))
+    expect((await screen.findAllByText('已上架')).length).toBeGreaterThan(0)
+
+    await user.keyboard('{Escape}')
+    await user.click(screen.getByLabelText('单位'))
+    expect((await screen.findAllByText('件')).length).toBeGreaterThan(0)
+
+    await user.keyboard('{Escape}')
+    await user.click(screen.getByLabelText('包装类型'))
+    expect(await screen.findByText('纸箱包装')).toBeInTheDocument()
+
+    expect(enumsApi.list).toHaveBeenCalledWith({ group: 'product_type', include_disabled: false })
+    expect(enumsApi.list).toHaveBeenCalledWith({ group: 'product_status', include_disabled: false })
+    expect(enumsApi.list).toHaveBeenCalledWith({ group: 'unit', include_disabled: false })
+    expect(enumsApi.list).toHaveBeenCalledWith({ group: 'package_type', include_disabled: false })
+  })
+
+  it('编辑态会用枚举文案展示继承的禁止经营国家', async () => {
+    renderSKUFormPage({
+      mode: 'edit',
+      skuId: '201',
+      currentPath: '/products/skus/201/edit',
+      role: 'product_dept',
+    })
+
+    expect(await screen.findByText('美国、德国')).toBeInTheDocument()
   })
 
   it('编辑路由参数非法时阻止表单渲染', async () => {

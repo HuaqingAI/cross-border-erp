@@ -9,6 +9,7 @@ import { categoriesApi } from '../../../../api/categories'
 import { skusApi } from '../../../../api/skus'
 import { FilterCard, PaginationBar } from '../../../../components/common'
 import { usePermission } from '../../../../hooks/usePermission'
+import { buildEnumOptions, resolveEnumLabel, useSystemEnumItems } from '../../../../hooks/useSystemEnums'
 import { useUIStore } from '../../../../stores/uiStore'
 import type {
   CategoryTreeNode,
@@ -25,19 +26,6 @@ interface FilterValues {
   product_type?: SkuProductType
   keyword?: string
 }
-
-const productStatusOptions: { label: SkuProductStatus; value: SkuProductStatus }[] = [
-  { label: '上架', value: '上架' },
-  { label: '下架可售', value: '下架可售' },
-  { label: '下架不可售', value: '下架不可售' },
-  { label: '临拓', value: '临拓' },
-]
-
-const productTypeOptions: { label: SkuProductType; value: SkuProductType }[] = [
-  { label: '主品', value: '主品' },
-  { label: '配件', value: '配件' },
-  { label: '耗材', value: '耗材' },
-]
 
 function toCategoryOptions(nodes: CategoryTreeNode[]): DefaultOptionType[] {
   return nodes.map((node) => ({
@@ -98,6 +86,10 @@ export default function SKUListPage() {
   })
 
   const categoryOptions = toCategoryOptions(categoriesQuery.data ?? [])
+  const productStatusQuery = useSystemEnumItems('product_status')
+  const productTypeQuery = useSystemEnumItems('product_type')
+  const productStatusOptions = buildEnumOptions(productStatusQuery.data)
+  const productTypeOptions = buildEnumOptions(productTypeQuery.data)
 
   const openRouteTab = (path: string, label: string) => {
     openTab({ key: path, label, closable: true })
@@ -161,7 +153,9 @@ export default function SKUListPage() {
       dataIndex: 'product_status',
       key: 'product_status',
       width: 140,
-      render: (value: SkuProductStatus) => <Tag color={getStatusColor(value)}>{value}</Tag>,
+      render: (value: SkuProductStatus) => (
+        <Tag color={getStatusColor(value)}>{resolveEnumLabel(productStatusQuery.data, value)}</Tag>
+      ),
     },
     {
       title: '创建时间',
@@ -236,6 +230,7 @@ export default function SKUListPage() {
                 data-testid="sku-product-status-select"
                 placeholder="请选择产品状态"
                 options={productStatusOptions}
+                loading={productStatusQuery.isLoading}
               />
             </Form.Item>
 
@@ -245,6 +240,7 @@ export default function SKUListPage() {
                 data-testid="sku-product-type-select"
                 placeholder="请选择产品类型"
                 options={productTypeOptions}
+                loading={productTypeQuery.isLoading}
               />
             </Form.Item>
 

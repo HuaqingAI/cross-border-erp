@@ -2,24 +2,13 @@ from __future__ import annotations
 
 from datetime import datetime
 from decimal import Decimal
-from enum import Enum
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.schemas.common import PaginatedResponse
 
 
-class SKUProductType(str, Enum):
-    MAIN_PRODUCT = "主品"
-    ACCESSORY = "配件"
-    CONSUMABLE = "耗材"
-
-
-class SKUProductStatus(str, Enum):
-    ACTIVE = "上架"
-    INACTIVE_SELLABLE = "下架可售"
-    INACTIVE_UNSELLABLE = "下架不可售"
-    TEMPORARY = "临拓"
+DEFAULT_SKU_PRODUCT_STATUS = "上架"
 
 
 class SKUPackageDetailPayload(BaseModel):
@@ -40,9 +29,9 @@ class SKUCreate(BaseModel):
     name_zh: str = Field(min_length=1, max_length=100)
     name_en: str = Field(min_length=1, max_length=100)
     product_model: str = Field(min_length=1, max_length=100)
-    product_type: SKUProductType
+    product_type: str = Field(min_length=1, max_length=50)
     core_params: str = Field(min_length=1, max_length=500)
-    product_status: SKUProductStatus | None = None
+    product_status: str | None = Field(default=None, min_length=1, max_length=50)
     electrical_params: str | None = Field(default=None, max_length=100)
     principle: str = Field(min_length=1, max_length=500)
     usage: str = Field(min_length=1, max_length=500)
@@ -64,9 +53,9 @@ class SKUUpdate(BaseModel):
     name_zh: str | None = Field(default=None, min_length=1, max_length=100)
     name_en: str | None = Field(default=None, min_length=1, max_length=100)
     product_model: str | None = Field(default=None, min_length=1, max_length=100)
-    product_type: SKUProductType | None = None
+    product_type: str | None = Field(default=None, min_length=1, max_length=50)
     core_params: str | None = Field(default=None, min_length=1, max_length=500)
-    product_status: SKUProductStatus | None = None
+    product_status: str | None = Field(default=None, min_length=1, max_length=50)
     electrical_params: str | None = Field(default=None, max_length=100)
     principle: str | None = Field(default=None, min_length=1, max_length=500)
     usage: str | None = Field(default=None, min_length=1, max_length=500)
@@ -135,12 +124,12 @@ class SKUListItem(BaseModel):
     name_zh: str
     name_en: str
     product_model: str
-    product_type: SKUProductType
+    product_type: str
     level1_category_id: int
     level2_category_id: int
     level3_category_id: int
     supplier_name: str
-    product_status: SKUProductStatus
+    product_status: str
     customer_warranty_months: int
     created_at: datetime
 
@@ -158,7 +147,7 @@ class SKUDetail(BaseModel):
     name_zh: str
     name_en: str
     product_model: str
-    product_type: SKUProductType
+    product_type: str
     level1_category_id: int
     level2_category_id: int
     level3_category_id: int
@@ -166,7 +155,7 @@ class SKUDetail(BaseModel):
     restricted_countries: list[str]
     customer_warranty_months: int
     core_params: str
-    product_status: SKUProductStatus
+    product_status: str
     electrical_params: str | None = None
     principle: str
     usage: str
