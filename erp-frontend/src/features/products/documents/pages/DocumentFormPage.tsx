@@ -22,6 +22,7 @@ import { skusApi } from '../../../../api/skus'
 import { FixedActionBar, FormSectionCard } from '../../../../components/common'
 import FormGrid from '../../../../components/form/FormGrid'
 import { usePermission } from '../../../../hooks/usePermission'
+import { buildEnumOptions, useSystemEnumItems } from '../../../../hooks/useSystemEnums'
 import { useUIStore } from '../../../../stores/uiStore'
 import type {
   CategoryTreeNode,
@@ -54,20 +55,13 @@ interface LocalPendingFile {
   file: File
 }
 
+const COUNTRY_REGION_CODE_PATTERN = /^(?:[A-Z]{2}|GLOBAL)$/
+
 const OWNERSHIP_OPTIONS: Array<{ label: DocumentOwnershipType; value: DocumentOwnershipType }> = [
   { label: '通用', value: '通用' },
   { label: '指定SKU', value: '指定SKU' },
   { label: '按分类', value: '按分类' },
 ]
-
-const DOCUMENT_TYPE_OPTIONS = [
-  '产品手册',
-  '技术参数',
-  '使用说明',
-  '安装说明',
-  '培训资料',
-  '其他',
-].map((value) => ({ label: value, value }))
 
 const DEFAULT_FORM_VALUES: DocumentFormValues = {
   name: '',
@@ -154,7 +148,10 @@ export function toDocumentFormValues(
       document.category_ids
         ?.map((categoryId) => findCategoryPath(categoryTree, categoryId))
         .filter((value): value is number[] => Array.isArray(value)) ?? [],
-    applicable_countries: document.applicable_countries ?? [],
+    applicable_countries:
+      (document.applicable_countries ?? [])
+        .map((item) => item.trim().toUpperCase())
+        .filter((item) => COUNTRY_REGION_CODE_PATTERN.test(item)),
     remarks: document.remarks ?? '',
   }
 }
@@ -183,7 +180,7 @@ export function toDocumentMutationPayload(
     sku_ids: ownershipType === '指定SKU' ? values.sku_ids ?? [] : [],
     category_ids: ownershipType === '按分类' ? categoryIds : [],
     applicable_countries: (values.applicable_countries ?? [])
-      .map((item) => item.trim())
+      .map((item) => item.trim().toUpperCase())
       .filter(Boolean),
     attachments: normalizedAttachments,
     remarks: values.remarks?.trim() || null,
@@ -244,6 +241,9 @@ export default function DocumentFormPage({ mode, documentId }: DocumentFormPageP
       }),
   })
 
+  const documentTypeQuery = useSystemEnumItems('document_type')
+  const countryRegionQuery = useSystemEnumItems('country_region')
+
   useEffect(() => {
     if (!detailQuery.data || categoriesQuery.isLoading) {
       return
@@ -262,6 +262,27 @@ export default function DocumentFormPage({ mode, documentId }: DocumentFormPageP
   }
 
   const categoryOptions = toCategoryOptions(categoriesQuery.data ?? [])
+  const documentTypeOptions = useMemo(
+    () =>
+      buildEnumOptions(
+        documentTypeQuery.data,
+        detailQuery.data?.document_type
+          ? [{ value: detailQuery.data.document_type, label: detailQuery.data.document_type }]
+          : [],
+      ),
+    [detailQuery.data?.document_type, documentTypeQuery.data],
+  )
+  const applicableCountryOptions = useMemo(
+    () =>
+      buildEnumOptions(
+        countryRegionQuery.data,
+        (detailQuery.data?.applicable_countries ?? []).map((country) => ({
+          value: country,
+          label: country,
+        })),
+      ),
+    [countryRegionQuery.data, detailQuery.data?.applicable_countries],
+  )
   const skuOptions = useMemo(() => {
     const options = new Map<number, string>()
     for (const item of skuOptionsQuery.data?.items ?? []) {
@@ -495,16 +516,19 @@ export default function DocumentFormPage({ mode, documentId }: DocumentFormPageP
                   allowClear
                   showSearch
                   placeholder="请选择资料类型"
-                  options={DOCUMENT_TYPE_OPTIONS}
+                  options={documentTypeOptions}
+                  loading={documentTypeQuery.isLoading}
                   optionFilterProp="label"
                 />
               </Form.Item>
               <Form.Item label="适用国家/地区" name="applicable_countries">
                 <Select
-                  mode="tags"
+                  mode="multiple"
                   allowClear
                   placeholder="未填写则默认全局适用"
-                  tokenSeparators={[',']}
+                  options={applicableCountryOptions}
+                  loading={countryRegionQuery.isLoading}
+                  optionFilterProp="label"
                 />
               </Form.Item>
               <Form.Item label="资料内容（HTML）" name="content_html" style={{ gridColumn: '1 / -1' }}>

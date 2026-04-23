@@ -41,6 +41,21 @@ async def test_validate_attachment_rejects_mismatched_url(db_session):
         )
 
 
+@pytest.mark.asyncio
+async def test_normalize_countries_uppercases_and_deduplicates(db_session):
+    service = ProductDocumentService(db_session)
+
+    assert service._normalize_countries([" us ", "GLOBAL", "US"]) == ["US", "GLOBAL"]
+
+
+@pytest.mark.asyncio
+async def test_normalize_countries_rejects_non_standard_code(db_session):
+    service = ProductDocumentService(db_session)
+
+    with pytest.raises(BusinessError, match="适用国家/地区必须为标准编码"):
+        service._normalize_countries(["China"])
+
+
 def test_schema_normalizes_name_and_optional_text_fields():
     payload = ProductDocumentCreate(
         name="  资料名称  ",

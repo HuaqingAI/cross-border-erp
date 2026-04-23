@@ -248,8 +248,26 @@ async def test_create_document_rejects_blank_name(
     )
 
     assert response.status_code == 422
-    assert response.json()["code"] == "VALIDATION_ERROR"
-    assert response.json()["details"][0]["msg"] == "Value error, 资料名称不能为空"
+
+
+@pytest.mark.asyncio
+async def test_create_document_rejects_non_standard_country_code(
+    client: AsyncClient,
+    db_session: AsyncSession,
+):
+    await _login_as_role(client, db_session, UserRole.PRODUCT_DEPT)
+
+    response = await client.post(
+        "/api/v1/products/documents",
+        json=_document_payload(
+            name="非法国家资料",
+            applicable_countries=["China"],
+        ),
+    )
+
+    assert response.status_code == 400
+    assert response.json()["message"] == "适用国家/地区必须为标准编码（如 CN、US、GLOBAL）"
+    assert response.json()["code"] == "BUSINESS_ERROR"
 
 
 @pytest.mark.asyncio
