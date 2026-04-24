@@ -35,6 +35,11 @@ const queryClient = new QueryClient({
   },
 })
 
+const IMPORT_PAGE_CACHE_VERSION =
+  typeof __IMPORT_PAGE_CACHE_VERSION__ !== 'undefined' ? __IMPORT_PAGE_CACHE_VERSION__ : 'dev'
+
+const IMPORT_PAGE_CACHE_KEY = `/import@${IMPORT_PAGE_CACHE_VERSION}`
+
 // AntD 主题配置（UX-DR3）
 const antdTheme = {
   token: {
@@ -323,7 +328,7 @@ function App() {
                     <Route
                       path="/import"
                       element={
-                        <KeepAlive name="/import" id="/import">
+                        <KeepAlive name={IMPORT_PAGE_CACHE_KEY} id={IMPORT_PAGE_CACHE_KEY}>
                           <ImportPage />
                         </KeepAlive>
                       }
