@@ -249,10 +249,7 @@ class ImportTaskService:
             progress_percent=0,
             result_summary=None,
         )
-        task.status = self.IMPORTING_STATUS
-        task.progress_percent = 0
-        self.db.add(task)
-        await self.db.flush()
+        await self.db.refresh(task)
 
         try:
             imported_count = 0
@@ -265,6 +262,7 @@ class ImportTaskService:
             else:
                 raise BusinessError("不支持的导入类型", code="NOT_FOUND", status_code=404)
         except Exception as exc:  # noqa: BLE001
+            await self.db.rollback()
             await self._persist_task_state(
                 task.id,
                 status=self.IMPORT_FAILED_STATUS,
@@ -272,6 +270,7 @@ class ImportTaskService:
             )
             raise
 
+        await self.db.refresh(task)
         task.status = self.IMPORTED_STATUS
         task.progress_percent = 100
         task.confirmed_at = datetime.now(timezone.utc)
