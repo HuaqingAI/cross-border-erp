@@ -252,13 +252,12 @@ export default function FAQListPage() {
 
       <div
         style={{
+          marginBottom: 8,
           display: 'flex',
-          justifyContent: 'space-between',
           alignItems: 'center',
-          marginBottom: 12,
+          minHeight: 32,
         }}
       >
-        <div />
         {permission.canCreateProduct ? (
           <Button type="primary" onClick={() => openRouteTab('/products/faqs/new', '新增FAQ')}>
             新增

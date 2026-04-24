@@ -9,7 +9,7 @@ class Settings(BaseSettings):
 
     # JWT（Story 1.2 使用）
     SECRET_KEY: str = "change-this-in-production"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 360
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
     # MinIO/OSS

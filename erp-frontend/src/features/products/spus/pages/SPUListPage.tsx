@@ -211,11 +211,10 @@ export default function SPUListPage() {
         style={{
           marginBottom: 8,
           display: 'flex',
-          justifyContent: 'space-between',
           alignItems: 'center',
+          minHeight: 32,
         }}
       >
-        <div />
         {permission.canCreateProduct ? (
           <Button type="primary" onClick={() => openRouteTab('/products/spus/new', '新增SPU')}>
             新增

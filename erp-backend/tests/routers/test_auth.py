@@ -8,6 +8,13 @@ from httpx import AsyncClient
 from app.models.user import User
 
 
+def _find_set_cookie(response, cookie_name: str) -> str:
+    for header in response.headers.get_list("set-cookie"):
+        if header.startswith(f"{cookie_name}="):
+            return header
+    raise AssertionError(f"未找到 {cookie_name} 的 Set-Cookie 头")
+
+
 @pytest.mark.asyncio
 async def test_login_success(client: AsyncClient, test_user: User):
     """正确凭证 → 200 + 用户信息 + Cookie 已设置。"""
@@ -22,6 +29,8 @@ async def test_login_success(client: AsyncClient, test_user: User):
     assert "id" in data["user"]
     assert "access_token" in response.cookies
     assert "refresh_token" in response.cookies
+    assert "Max-Age=21600" in _find_set_cookie(response, "access_token")
+    assert "Max-Age=604800" in _find_set_cookie(response, "refresh_token")
 
 
 @pytest.mark.asyncio
@@ -107,6 +116,7 @@ async def test_refresh_token(client: AsyncClient, test_user: User):
     refresh_resp = await client.post("/api/v1/auth/refresh")
     assert refresh_resp.status_code == 200
     assert "access_token" in refresh_resp.cookies
+    assert "Max-Age=21600" in _find_set_cookie(refresh_resp, "access_token")
 
 
 @pytest.mark.asyncio
