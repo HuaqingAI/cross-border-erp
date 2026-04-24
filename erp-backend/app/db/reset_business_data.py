@@ -11,7 +11,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import AsyncSessionLocal, engine
@@ -101,6 +101,7 @@ async def reset_business_data(*, preview: bool, confirm: str | None) -> None:
 
         deleted_counts: dict[str, int] = {}
         try:
+            await session.execute(text("SET FOREIGN_KEY_CHECKS = 0"))
             for label, model in CLEAR_ORDER:
                 result = await session.execute(delete(model))
                 deleted_counts[label] = int(result.rowcount or 0)
@@ -108,6 +109,11 @@ async def reset_business_data(*, preview: bool, confirm: str | None) -> None:
         except Exception:
             await session.rollback()
             raise
+        finally:
+            try:
+                await session.execute(text("SET FOREIGN_KEY_CHECKS = 1"))
+            except Exception:
+                pass
 
     print("\n业务数据清理完成：")
     for label, _ in CLEAR_ORDER:
