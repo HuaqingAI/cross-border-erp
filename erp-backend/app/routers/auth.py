@@ -10,8 +10,8 @@ from app.core.config import settings
 
 router = APIRouter(prefix="/auth", tags=["认证"])
 
-ACCESS_MAX_AGE = 30 * 60        # 30 分钟（秒）
-REFRESH_MAX_AGE = 7 * 24 * 3600  # 7 天（秒）
+ACCESS_MAX_AGE = settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
+REFRESH_MAX_AGE = settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 3600
 
 
 def _cookie_opts() -> dict[str, object]:

@@ -407,13 +407,12 @@ export default function PriceListPage() {
 
       <div
         style={{
+          marginBottom: 8,
           display: 'flex',
-          justifyContent: 'space-between',
           alignItems: 'center',
-          marginBottom: 12,
+          minHeight: 32,
         }}
       >
-        <div />
         {permission.canManagePrice ? (
           <Button type="primary" onClick={() => openRouteTab('/prices/new', '新增价格')}>
             新增
