@@ -1,5 +1,5 @@
 # Build stage
-ARG NPM_REGISTRY=https://registry.npmmirror.com
+ARG NPM_REGISTRY=https://registry.npmjs.org
 
 FROM node:20-alpine AS builder
 
