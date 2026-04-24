@@ -313,6 +313,55 @@ export interface SystemEnumUpdatePayload {
   is_enabled?: boolean
 }
 
+export type ImportTaskType = 'categories' | 'spus' | 'skus'
+
+export interface ImportValidationErrorItem {
+  row_number: number
+  field: string
+  message: string
+  row_key?: string | null
+}
+
+export interface ImportValidationResult {
+  task_id: number
+  task_type: ImportTaskType | string
+  status: string
+  total_rows: number
+  success_count: number
+  failed_count: number
+  progress_percent: number
+  can_confirm: boolean
+  errors: ImportValidationErrorItem[]
+}
+
+export interface ImportConfirmPayload {
+  task_id: number
+}
+
+export interface ImportConfirmResult {
+  task_id: number
+  task_type: ImportTaskType | string
+  status: string
+  imported_count: number
+  progress_percent: number
+  confirmed_at?: string | null
+}
+
+export interface ImportTaskProgress {
+  id: number
+  task_type: ImportTaskType | string
+  status: string
+  original_filename?: string | null
+  total_rows: number
+  valid_rows: number
+  invalid_rows: number
+  progress_percent: number
+  validation_errors: ImportValidationErrorItem[]
+  result_summary?: Record<string, unknown> | null
+  expires_at?: string | null
+  confirmed_at?: string | null
+}
+
 export interface PriceListItem {
   id: number
   sku_id: number

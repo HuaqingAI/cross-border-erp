@@ -46,6 +46,7 @@ from app.services.skus import SKUService
 EXCEL_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 DATA_SHEET_NAME = "数据"
 INSTRUCTION_SHEET_NAME = "填写说明"
+REQUIRED_FONT_COLOR = "FFFF0000"
 
 
 @dataclass(frozen=True)
@@ -174,8 +175,15 @@ class ImportTaskService:
     async def download_template(self, import_type: str) -> tuple[str, bytes]:
         template = self._get_template(import_type)
         workbook = Workbook()
-        instruction_sheet = workbook.active
-        instruction_sheet.title = INSTRUCTION_SHEET_NAME
+        data_sheet = workbook.active
+        data_sheet.title = DATA_SHEET_NAME
+        headers = [column.title for column in template.columns]
+        data_sheet.append(headers)
+        for index, cell in enumerate(data_sheet[1]):
+            column = template.columns[index]
+            cell.font = Font(bold=True, color=REQUIRED_FONT_COLOR if column.required else None)
+
+        instruction_sheet = workbook.create_sheet(INSTRUCTION_SHEET_NAME)
         instruction_sheet.append(["模板", template.title])
         instruction_sheet.append(["说明", "请勿修改数据页标题行；多行明细请保持基础字段一致。"])
         instruction_sheet.append([])
@@ -183,19 +191,15 @@ class ImportTaskService:
         for cell in instruction_sheet[4]:
             cell.font = Font(bold=True)
         for column in template.columns:
-            instruction_sheet.append(
-                [column.title, "是" if column.required else "否", column.description]
-            )
+            instruction_sheet.append([column.title, "是" if column.required else "否", column.description])
+            row = instruction_sheet[instruction_sheet.max_row]
+            if column.required:
+                row[0].font = Font(color=REQUIRED_FONT_COLOR)
+                row[1].font = Font(color=REQUIRED_FONT_COLOR)
         instruction_sheet.append([])
         instruction_sheet.append(["补充说明", ""])
         for note in template.notes:
             instruction_sheet.append(["", note])
-
-        data_sheet = workbook.create_sheet(DATA_SHEET_NAME)
-        headers = [column.title for column in template.columns]
-        data_sheet.append(headers)
-        for cell in data_sheet[1]:
-            cell.font = Font(bold=True)
 
         for sheet in (instruction_sheet, data_sheet):
             for index, column in enumerate(sheet.columns, start=1):

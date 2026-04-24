@@ -158,8 +158,13 @@ async def test_download_category_template_returns_excel(
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
     workbook = load_workbook(BytesIO(response.content))
-    assert workbook.sheetnames == ["填写说明", "数据"]
+    assert workbook.sheetnames == ["数据", "填写说明"]
     assert workbook["数据"]["A1"].value == "分类编码"
+    assert workbook["数据"]["A1"].font.color is not None
+    assert workbook["数据"]["A1"].font.color.rgb == "FFFF0000"
+    assert workbook["数据"]["E1"].font.color is None
+    assert workbook["填写说明"]["A5"].font.color is not None
+    assert workbook["填写说明"]["A5"].font.color.rgb == "FFFF0000"
 
 
 @pytest.mark.asyncio

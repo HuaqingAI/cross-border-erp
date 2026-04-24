@@ -100,7 +100,7 @@ development_status:
   # Epic 8: 数据导入与系统配置
   epic-8: in-progress
   8-1-excel-导入模板与批量导入-api: review
-  8-2-数据导入前端页面: backlog
+  8-2-数据导入前端页面: review
   8-3-枚举值配置管理: review
   8-4-价格与资料模块枚举接入: review
   8-5-证书-faq-与-spu-模块枚举接入: review
