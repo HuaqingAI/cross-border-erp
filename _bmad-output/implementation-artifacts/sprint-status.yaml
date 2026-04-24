@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-04-14
-last_updated: 2026-04-23
+last_updated: 2026-04-24
 project: cross-border-erp
 project_key: NOKEY
 tracking_system: file-system
@@ -99,7 +99,7 @@ development_status:
 
   # Epic 8: 数据导入与系统配置
   epic-8: in-progress
-  8-1-excel-导入模板与批量导入-api: backlog
+  8-1-excel-导入模板与批量导入-api: review
   8-2-数据导入前端页面: backlog
   8-3-枚举值配置管理: review
   8-4-价格与资料模块枚举接入: review

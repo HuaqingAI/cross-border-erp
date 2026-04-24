@@ -93,6 +93,15 @@ class SPURepository(BaseRepository[SPU]):
         )
         return list(result.scalars().all())
 
+    async def list_supplier_names(self) -> list[str]:
+        result = await self.db.execute(
+            select(self.model.supplier_name)
+            .where(self.model.deleted_at.is_(None))
+            .distinct()
+            .order_by(self.model.supplier_name.asc())
+        )
+        return [item for item in result.scalars().all() if item]
+
     async def save_invoice_info(self, invoice_info: SPUInvoiceInfo) -> SPUInvoiceInfo:
         self.db.add(invoice_info)
         await self.db.flush()
