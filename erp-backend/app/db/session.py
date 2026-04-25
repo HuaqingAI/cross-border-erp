@@ -7,7 +7,12 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from app.core.config import settings
 from app.core.exceptions import translate_integrity_error
 
-engine = create_async_engine(settings.DATABASE_URL, echo=settings.DEBUG)
+engine = create_async_engine(
+    settings.DATABASE_URL,
+    echo=settings.DEBUG,
+    pool_pre_ping=settings.DB_POOL_PRE_PING,
+    pool_recycle=settings.DB_POOL_RECYCLE_SECONDS,
+)
 AsyncSessionLocal = async_sessionmaker(engine, expire_on_commit=False)
 logger = logging.getLogger(__name__)
 

@@ -6,6 +6,8 @@ class Settings(BaseSettings):
 
     # 数据库
     DATABASE_URL: str = "mysql+aiomysql://root:password@db:3306/erp"
+    DB_POOL_PRE_PING: bool = True
+    DB_POOL_RECYCLE_SECONDS: int = 1800
 
     # JWT（Story 1.2 使用）
     SECRET_KEY: str = "change-this-in-production"
