@@ -17,6 +17,7 @@ import { FormSectionCard, InheritedField } from '../../../../components/common'
 import { usePermission } from '../../../../hooks/usePermission'
 import { resolveEnumLabel, resolveEnumLabels, useSystemEnumItems } from '../../../../hooks/useSystemEnums'
 import { useUIStore } from '../../../../stores/uiStore'
+import { fetchAllPages } from '../../../../utils/fetchAllPages'
 import type {
   CategoryTreeNode,
   CertificateListItem,
@@ -138,23 +139,6 @@ function isNotFoundError(error: unknown): boolean {
     'status' in error.response &&
     error.response.status === 404
   )
-}
-
-async function fetchAllPages<T>(
-  fetchPage: (page: number, pageSize: number) => Promise<{ items: T[]; total: number }>,
-): Promise<T[]> {
-  const items: T[] = []
-  let page = 1
-  let total = 0
-
-  do {
-    const response = await fetchPage(page, PAGE_SIZE)
-    items.push(...response.items)
-    total = response.total
-    page += 1
-  } while (items.length < total)
-
-  return items
 }
 
 function buildSummaryCard(
@@ -368,17 +352,19 @@ export default function SKUDetailPage({ skuId }: SKUDetailPageProps) {
       detailQuery.data?.level3_category_id,
     ],
     queryFn: async () =>
-      fetchAllPages((page, pageSize) =>
-        certificatesApi.list({
-          page,
-          page_size: pageSize,
-          aggregate_spu_id: detailQuery.data?.spu_id,
-          aggregate_category_ids: [
-            detailQuery.data?.level1_category_id,
-            detailQuery.data?.level2_category_id,
-            detailQuery.data?.level3_category_id,
-          ].filter((value): value is number => typeof value === 'number'),
-        }),
+      fetchAllPages(
+        (page, pageSize) =>
+          certificatesApi.list({
+            page,
+            page_size: pageSize,
+            aggregate_spu_id: detailQuery.data?.spu_id,
+            aggregate_category_ids: [
+              detailQuery.data?.level1_category_id,
+              detailQuery.data?.level2_category_id,
+              detailQuery.data?.level3_category_id,
+            ].filter((value): value is number => typeof value === 'number'),
+          }),
+        PAGE_SIZE,
       ),
     enabled: detailQuery.data !== undefined,
   })
@@ -392,17 +378,19 @@ export default function SKUDetailPage({ skuId }: SKUDetailPageProps) {
       detailQuery.data?.level3_category_id,
     ],
     queryFn: async () =>
-      fetchAllPages((page, pageSize) =>
-        documentsApi.list({
-          page,
-          page_size: pageSize,
-          aggregate_sku_id: detailQuery.data?.id,
-          aggregate_category_ids: [
-            detailQuery.data?.level1_category_id,
-            detailQuery.data?.level2_category_id,
-            detailQuery.data?.level3_category_id,
-          ].filter((value): value is number => typeof value === 'number'),
-        }),
+      fetchAllPages(
+        (page, pageSize) =>
+          documentsApi.list({
+            page,
+            page_size: pageSize,
+            aggregate_sku_id: detailQuery.data?.id,
+            aggregate_category_ids: [
+              detailQuery.data?.level1_category_id,
+              detailQuery.data?.level2_category_id,
+              detailQuery.data?.level3_category_id,
+            ].filter((value): value is number => typeof value === 'number'),
+          }),
+        PAGE_SIZE,
       ),
     enabled: detailQuery.data !== undefined,
   })
@@ -410,12 +398,14 @@ export default function SKUDetailPage({ skuId }: SKUDetailPageProps) {
   const relatedFaqsQuery = useQuery({
     queryKey: ['sku-related-faqs', numericSkuId, detailQuery.data?.spu_id],
     queryFn: async () =>
-      fetchAllPages((page, pageSize) =>
-        faqsApi.list({
-          page,
-          page_size: pageSize,
-          aggregate_spu_id: detailQuery.data?.spu_id,
-        }),
+      fetchAllPages(
+        (page, pageSize) =>
+          faqsApi.list({
+            page,
+            page_size: pageSize,
+            aggregate_spu_id: detailQuery.data?.spu_id,
+          }),
+        PAGE_SIZE,
       ),
     enabled: detailQuery.data !== undefined,
   })

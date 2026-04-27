@@ -13,6 +13,7 @@ import { FormSectionCard } from '../../../../components/common'
 import { usePermission } from '../../../../hooks/usePermission'
 import { resolveEnumLabel, useSystemEnumItems } from '../../../../hooks/useSystemEnums'
 import { useUIStore } from '../../../../stores/uiStore'
+import { fetchAllPages } from '../../../../utils/fetchAllPages'
 import { spusApi } from '../../../../api/spus'
 import type {
   CategoryTreeNode,
@@ -101,65 +102,41 @@ function renderRelationError(message: string) {
 }
 
 async function fetchAllSkuItems(baseParams: Omit<SkuListQuery, 'page' | 'page_size'>): Promise<SkuListItem[]> {
-  const items: SkuListItem[] = []
-  let page = 1
-  let total = 0
-
-  do {
-    const response = await skusApi.list({
-      ...baseParams,
-      page,
-      page_size: PAGE_SIZE,
-    })
-
-    items.push(...response.items)
-    total = response.total
-    page += 1
-  } while (items.length < total)
-
-  return items
+  return fetchAllPages(
+    (page, pageSize) =>
+      skusApi.list({
+        ...baseParams,
+        page,
+        page_size: pageSize,
+      }),
+    PAGE_SIZE,
+  )
 }
 
 async function fetchAllFaqItems(baseParams: Omit<FaqListQuery, 'page' | 'page_size'>): Promise<FaqListItem[]> {
-  const items: FaqListItem[] = []
-  let page = 1
-  let total = 0
-
-  do {
-    const response = await faqsApi.list({
-      ...baseParams,
-      page,
-      page_size: PAGE_SIZE,
-    })
-
-    items.push(...response.items)
-    total = response.total
-    page += 1
-  } while (items.length < total)
-
-  return items
+  return fetchAllPages(
+    (page, pageSize) =>
+      faqsApi.list({
+        ...baseParams,
+        page,
+        page_size: pageSize,
+      }),
+    PAGE_SIZE,
+  )
 }
 
 async function fetchAllCertificateItems(
   ownershipType: CertificateOwnershipType,
 ): Promise<CertificateListItem[]> {
-  const items: CertificateListItem[] = []
-  let page = 1
-  let total = 0
-
-  do {
-    const response = await certificatesApi.list({
-      page,
-      page_size: PAGE_SIZE,
-      ownership_type: ownershipType,
-    })
-
-    items.push(...response.items)
-    total = response.total
-    page += 1
-  } while (items.length < total)
-
-  return items
+  return fetchAllPages(
+    (page, pageSize) =>
+      certificatesApi.list({
+        page,
+        page_size: pageSize,
+        ownership_type: ownershipType,
+      }),
+    PAGE_SIZE,
+  )
 }
 
 export default function SPUDetailPage({ spuId }: SPUDetailPageProps) {

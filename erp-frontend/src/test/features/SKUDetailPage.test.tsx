@@ -719,4 +719,28 @@ describe('SKUDetailPage', () => {
     expect(await screen.findByText('分页资料-101')).toBeInTheDocument()
     expect(vi.mocked(documentsApi.list)).toHaveBeenCalledTimes(2)
   })
+
+  it('聚合证书分页异常时展示错误提示而不是一直加载', async () => {
+    vi.mocked(certificatesApi.list)
+      .mockResolvedValueOnce({
+        items: certificateFixtures['通用'],
+        total: certificateFixtures['通用'].length + 1,
+        page: 1,
+        page_size: 100,
+      })
+      .mockResolvedValueOnce({
+        items: [],
+        total: certificateFixtures['通用'].length + 1,
+        page: 2,
+        page_size: 100,
+      })
+
+    const user = userEvent.setup()
+    renderPage('201')
+
+    await user.click(await screen.findByRole('tab', { name: '产品证书' }))
+
+    expect(await screen.findByText('关联证书加载失败')).toBeInTheDocument()
+    expect(screen.queryByText('暂无关联证书')).not.toBeInTheDocument()
+  })
 })

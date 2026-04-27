@@ -560,6 +560,27 @@ describe('SPUDetailPage', () => {
     expect(screen.queryByText('暂无关联证书')).not.toBeInTheDocument()
   })
 
+  it('证书分页聚合异常时展示错误提示而不是无限加载', async () => {
+    vi.mocked(certificatesApi.list)
+      .mockResolvedValueOnce({
+        items: certificateFixtures['通用'],
+        total: certificateFixtures['通用'].length + 1,
+        page: 1,
+        page_size: 100,
+      })
+      .mockResolvedValueOnce({
+        items: [],
+        total: certificateFixtures['通用'].length + 1,
+        page: 2,
+        page_size: 100,
+      })
+
+    renderPage('101')
+
+    expect(await screen.findByText('关联证书加载失败')).toBeInTheDocument()
+    expect(screen.queryByText('暂无关联证书')).not.toBeInTheDocument()
+  })
+
   it('分类树加载失败时展示警告并回退到分类ID', async () => {
     vi.mocked(categoriesApi.getTree).mockRejectedValueOnce(new Error('load failed'))
 
